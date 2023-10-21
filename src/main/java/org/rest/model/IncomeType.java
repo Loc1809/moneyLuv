@@ -10,7 +10,7 @@ import javax.persistence.Table;
 public class IncomeType {
     @Id
     @Column(name = "id")
-    int id;
+    String id;
 
     @Column(name = "name")
     String name;
@@ -18,16 +18,16 @@ public class IncomeType {
     public IncomeType() {
     }
 
-    public IncomeType(int id, String name) {
+    public IncomeType(String id, String name) {
         this.id = id;
         this.name = name;
     }
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 
