@@ -1,14 +1,14 @@
 package org.rest.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
+@TableGenerator(name = "tableGeneratorSaving", table = "id_generator", pkColumnName = "entity",
+        valueColumnName = "next_id", pkColumnValue = "Saving", allocationSize = 1)
 @Table(name = "saving")
 public class Saving {
     @Id
+    @GeneratedValue(strategy = GenerationType.TABLE, generator = "tableGeneratorSaving")
     @Column(name = "id")
     int id;
 
@@ -20,6 +20,12 @@ public class Saving {
 
     @Column(name = "desc")
     String desc;
+
+    @JoinColumn(name = "user")
+    int user;
+
+    @JoinColumn(name = "bank_info")
+    int bank_info;
 
     public Saving() {
     }

@@ -1,14 +1,15 @@
 package org.rest.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
+@TableGenerator(name = "tableGeneratorUser", table = "id_generator", pkColumnName = "entity",
+        valueColumnName = "next_id", pkColumnValue = "User", allocationSize = 1)
 @Table(name = "user")
 public class User {
     @Id
+    @GeneratedValue(strategy = GenerationType.TABLE, generator = "tableGeneratorUser")
+
     @Column(name = "id")
     int id;
 
@@ -33,10 +34,18 @@ public class User {
     @Column(name = "date_of_birth")
     String dateOfBirth; // stored date as string
 
+    @Column(name = "role")
+    String role;
+
+    public User(String username, String password) {
+        this.username = username;
+        this.password = password;
+    }
+
     public User() {
     }
 
-    public User(int id, String username, String password, String phoneNumber, String email, String name, String identifyCode, String dateOfBirth) {
+    public User(int id, String username, String password, String phoneNumber, String email, String name, String identifyCode, String dateOfBirth, String role) {
         this.id = id;
         this.username = username;
         this.password = password;
@@ -45,6 +54,15 @@ public class User {
         this.name = name;
         this.identifyCode = identifyCode;
         this.dateOfBirth = dateOfBirth;
+        this.role = role;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public int getId() {

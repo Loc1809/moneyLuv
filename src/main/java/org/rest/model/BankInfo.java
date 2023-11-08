@@ -1,14 +1,14 @@
 package org.rest.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
+@TableGenerator(name = "tableGeneratorBank", table = "id_generator", pkColumnName = "entity",
+        valueColumnName = "next_id", pkColumnValue = "Bank", allocationSize = 1)
 @Table(name = "bank_info")
 public class BankInfo {
     @Id
+    @GeneratedValue(strategy = GenerationType.TABLE, generator = "tableGeneratorBank")
     @Column(name = "id")
     int id;
 
@@ -23,6 +23,9 @@ public class BankInfo {
 
     @Column(name = "term")
     int term; // store by epoch time
+
+    @JoinColumn(name = "user", nullable = true)
+    int user;
 
     public BankInfo() {
     }
@@ -73,5 +76,9 @@ public class BankInfo {
 
     public void setTerm(int term) {
         this.term = term;
+    }
+
+    public void setUser(int userId) {
+        this.user = userId;
     }
 }
