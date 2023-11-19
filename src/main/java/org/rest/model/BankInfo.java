@@ -24,8 +24,15 @@ public class BankInfo {
     @Column(name = "term")
     int term; // store by epoch time
 
+    @OneToOne
     @JoinColumn(name = "user", nullable = true)
-    int user;
+    User user;
+
+    @Column(name = "active")
+    Boolean active;
+
+    @Column(name = "last_updated")
+    String lastUpdated;
 
     public BankInfo() {
     }
@@ -78,7 +85,7 @@ public class BankInfo {
         this.term = term;
     }
 
-    public void setUser(int userId) {
+    public void setUser(User userId) {
         this.user = userId;
     }
 }

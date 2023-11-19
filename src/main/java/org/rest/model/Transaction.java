@@ -29,16 +29,17 @@ public class Transaction {
     @JoinColumn(name = "category")
     Category category;
 
+    @OneToOne
     @JoinColumn(name = "user")
-    int user;
+    User user;
 
-//    @JoinColumn(name = "transaction_source")
-//    int transactionSource;
+    @Column(name = "active")
+    Boolean active;
 
     public Transaction() {
     }
 
-    public Transaction(float amount, String time, String desc, Category category, int user, int direction) {
+    public Transaction(float amount, String time, String desc, Category category, User user, int direction) {
         this.amount = amount;
         this.time = time;
         this.desc = desc;
@@ -47,7 +48,7 @@ public class Transaction {
         this.direction = direction;
     }
 
-    public Transaction(int id, float amount, String time, String desc, Category category, int user) {
+    public Transaction(int id, float amount, String time, String desc, Category category, User user) {
         this.id = id;
         this.amount = amount;
         this.time = time;
@@ -90,15 +91,18 @@ public class Transaction {
     }
 
     public int getUser() {
-        return user;
+        return user.id;
     }
 
-    public void setUser(int user) {
+//    public User getUserInfo() { return this.user; }
+
+    public void setUser(User user) {
         this.user = user;
     }
 
+
     public String getDirection() {
-        if (direction == 1)
+        if (direction == 0)
             return "income";
         return "outcome";
     }

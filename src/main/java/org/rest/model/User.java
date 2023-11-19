@@ -37,6 +37,16 @@ public class User {
     @Column(name = "role")
     String role;
 
+    @ManyToOne
+    @JoinColumn(name = "parent_id")
+    User parentId;
+
+    @Column(name = "money")
+    float money;
+
+    @Column(name = "enabled")
+    Boolean enabled;
+
     public User(String username, String password) {
         this.username = username;
         this.password = password;
@@ -45,8 +55,7 @@ public class User {
     public User() {
     }
 
-    public User(int id, String username, String password, String phoneNumber, String email, String name, String identifyCode, String dateOfBirth, String role) {
-        this.id = id;
+    public User( String username, String password, String phoneNumber, String email, String name, String identifyCode, String dateOfBirth, String role) {
         this.username = username;
         this.password = password;
         this.phoneNumber = phoneNumber;
@@ -55,6 +64,30 @@ public class User {
         this.identifyCode = identifyCode;
         this.dateOfBirth = dateOfBirth;
         this.role = role;
+    }
+
+    public Boolean getEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(Boolean active) {
+        this.enabled = active;
+    }
+
+    public User getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(User parentId) {
+        this.parentId = parentId;
+    }
+
+    public float getMoney() {
+        return money;
+    }
+
+    public void setMoney(float money) {
+        this.money = money;
     }
 
     public String getRole() {

@@ -3,10 +3,19 @@ package org.rest.Service;
 import javax.servlet.http.HttpServletRequest;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import org.rest.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.core.env.Environment;
+import org.rest.model.User;
+import org.springframework.stereotype.Service;
 
+@Service
 public class UserService {
     private final Environment environment;
+
+    @Autowired
+    UserRepository userRepository;
 
     public UserService(Environment environment) {
         this.environment = environment;
@@ -17,12 +26,18 @@ public class UserService {
         return claims.get("username").toString();
     }
 
+    public User getCurrentUser(HttpServletRequest req, UserRepository userRepository){
+//        String username = (getCurrentUsername(req) == null) ? "" : getCurrentUsername(req);
+        String username = getCurrentUsername(req);
+        return userRepository.getUserByUsername(username);
+    }
+
     public int getCurrentUserId(HttpServletRequest req){
         try{
-            Claims claims = getClaims(req, environment.getProperty("token.secret"));
-            return Integer.parseInt(claims.get("userid").toString());
+            String username = getCurrentUsername(req);
+            return userRepository.findUserByUsernameContains(username).getId();
         } catch (Exception e){
-            return 1;
+            return 0;
         }
     }
 
