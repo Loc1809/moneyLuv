@@ -1,6 +1,9 @@
 package org.rest.model;
 
 import javax.persistence.*;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 @Entity
 @TableGenerator(name = "tableGeneratorTransaction", table = "id_generator", pkColumnName = "entity",
@@ -58,6 +61,14 @@ public class Transaction {
 //        this.transactionSource = transactionSource;
     }
 
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
+
     public int getId() {
         return id;
     }
@@ -75,7 +86,7 @@ public class Transaction {
     }
 
     public String getTime() {
-        return time;
+        return convertEpochToDateString(Long.parseLong(this.time));
     }
 
     public void setTime(String time) {
@@ -107,6 +118,10 @@ public class Transaction {
         return "outcome";
     }
 
+    public int actualDirection(){
+        return this.direction;
+    }
+
     public void setDirection(int direction) {
         this.direction = direction;
     }
@@ -126,4 +141,9 @@ public class Transaction {
 //    public void setTransactionSource(int transactionSource) {
 //        this.transactionSource = transactionSource;
 //    }
+
+    public String convertEpochToDateString(Long epoch){
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return Instant.ofEpochMilli(epoch).atZone(ZoneId.systemDefault()).toLocalDateTime().format(dtf);
+    }
 }

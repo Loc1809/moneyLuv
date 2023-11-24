@@ -14,9 +14,11 @@ import java.util.Optional;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Integer> {
     Optional<Category> findByIdOrName(Integer id, String name);
-    Optional<Category> findByNameAndType(String name, int type);
+    Optional<Category> findByNameAndTypeAndUser(String name, int type, int user);
 
-    List<Category> findAllByUser(User user, Pageable pageable);
+    List<Category> findAllByUser(int user, Pageable pageable);
 
-    Page<Category> findAllByTypeAndUser(int type, User user, Pageable pageable);
+    Page<Category> findAllByTypeAndUser(int type, int user, Pageable pageable);
+
+    List<Category> getCategoriesByUserIsInAndType(int[] user, int type);
 }

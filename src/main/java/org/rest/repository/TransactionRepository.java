@@ -1,7 +1,9 @@
 package org.rest.repository;
 
 
+import org.rest.model.FinanceGoal;
 import org.rest.model.Transaction;
+import org.rest.model.User;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Pageable;
@@ -19,12 +21,16 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
     @Query(value = ":query", nativeQuery = true)
     List<Object[]> queryCriteria(@Param("query") String query);
 
-    Optional<Transaction> findByIdAndUser(int id, int user);
+    Optional<Transaction> findByIdAndUser(int id, User user);
 
     List<Transaction> findAllByDirection(int direction, Pageable pageable);
 
+    List<Transaction> findAllByTimeBetweenAndUser(String start, String end, User user);
+
     List<Object[]> findAllByTimeBetweenAndCategoryContains(String timeBefore, String timeAfter, String category);
-//    @Query(value = "SELECT SUM(count), loai_xe FROM `ve_thang_counter` WHERE thang >= :start AND nam >= :startY AND " +
-//        "thang <= :end AND nam <= :endY GROUP BY loai_xe", nativeQuery = true)
-//    List<Object[]> getDoanhThu(@Param("start") String start, @Param("end") String end, @Param("startY") String startY, @Param("endY") String endY);
+
+    @Query(value = "SELECT * FROM finance_goal WHERE " +
+       "(start_date BETWEEN  :start AND :end) AND (end_date BETWEEN :start AND :end)  " +
+        "AND user = :user AND active = true", nativeQuery = true)
+    List<FinanceGoal> findTransactionByTime(String start, String end, User user);
 }

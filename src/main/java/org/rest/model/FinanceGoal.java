@@ -22,18 +22,23 @@ public class FinanceGoal {
     String endDate;
 
     @Column(name = "type")
-    String type;
+    int type;
+
+    @Column(name = "active")
+    boolean active;
 
     @OneToOne
     @JoinColumn(name = "user")
     User user;
-    public FinanceGoal(int id, float amount, String startDate, String endDate, String type, User user) {
-        this.id = id;
+    public FinanceGoal(float amount, String startDate, String endDate, int type, User user) {
         this.amount = amount;
         this.startDate = startDate;
         this.endDate = endDate;
         this.type = type;
         this.user = user;
+    }
+
+    public FinanceGoal() {
     }
 
     public int getId() {
@@ -69,10 +74,12 @@ public class FinanceGoal {
     }
 
     public String getType() {
-        return type;
+                if (type == 0)
+            return "income";
+        return "outcome";
     }
 
-    public void setType(String type) {
+    public void setType(int type) {
         this.type = type;
     }
 
@@ -84,5 +91,13 @@ public class FinanceGoal {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }
