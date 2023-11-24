@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.rest.model.User;
+import org.springframework.web.client.RestTemplate;
 
 @CrossOrigin
 @RestController
@@ -75,8 +76,8 @@ public class UserController {
     @PostMapping("/create")
     public ResponseEntity<Object> createNewUser(@RequestBody User userModel, HttpServletRequest req) {
         try {
-            Claims claims = getClaims(req, environment.getProperty("token.secret"));
-            String subject = claims.getSubject();
+//            Claims claims = getClaims(req, environment.getProperty("token.secret"));
+//            String subject = claims.getSubject();
 //            if (subject.equalsIgnoreCase("[admin]") || subject.equalsIgnoreCase("[ROLE_admin]")) {
                 Optional<User> userFound = userRepository.findUserByUsernameAndEmail(userModel.getUsername(), userModel.getEmail());
                 if (userFound.isPresent())

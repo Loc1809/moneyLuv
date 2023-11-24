@@ -133,17 +133,21 @@ public class TransactionController {
     @PutMapping("/update/{id}")
     public ResponseEntity<Object> updateTransactionById(@PathVariable ("id") String id, @RequestBody JsonNode transaction,
                                                         HttpServletRequest req){
-        UserService userService = new UserService(environment);
-        Optional<Transaction> isFound = transactionRepository.findByIdAndUser(Integer.parseInt(id), userService.getCurrentUserId(req));
-        if (isFound.isPresent()) {
-            Transaction transactionFound = isFound.get();
-            transactionFound.setAmount(transaction.get("amount").floatValue());
-            transactionFound.setDesc(transaction.get("desc").asText());
-            transactionFound.setTime(transaction.get("time").asText());
-            // Not allow to update source and type
-             return new ResponseEntity<>(transactionRepository.save(transactionFound), HttpStatus.OK);
-        } else
-            return new ResponseEntity<>("Transaction not found", HttpStatus.NOT_FOUND);
+        try {
+            UserService userService = new UserService(environment);
+            Optional<Transaction> isFound = transactionRepository.findByIdAndUser(Integer.parseInt(id), userService.getCurrentUser(req, userRepository));
+            if (isFound.isPresent()) {
+                Transaction transactionFound = isFound.get();
+                transactionFound.setAmount(transaction.get("amount").floatValue());
+                transactionFound.setDesc(transaction.get("desc").asText());
+                transactionFound.setTime(transaction.get("time").asText());
+                // Not allow to update source and type
+                 return new ResponseEntity<>(transactionRepository.save(transactionFound), HttpStatus.OK);
+            } else
+                return new ResponseEntity<>("Transaction not found", HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PostMapping("/create/{type}")

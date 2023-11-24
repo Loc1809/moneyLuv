@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import javax.naming.AuthenticationException;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
@@ -44,11 +45,13 @@ public class CategoryController {
     public ResponseEntity<Object> getAllCategory(@PathVariable ("type") String type,
                                                  @RequestParam(value = "page", required = false) Integer page,
                                                  @RequestParam (value = "size", required = false) Integer size,
-                                                 HttpServletRequest req){
+                                                 HttpServletRequest req) throws AuthenticationException {
         int direction = (type.equals("income")) ? 0 : 1;
         Pageable pageable = (page != null) ? PageRequest.of(page, size) : PageRequest.of(0, Integer.MAX_VALUE);
-//        return new ResponseEntity<>( categoryRepository.findAllByUser(getCurrentUser(req, userRepository), pageable), HttpStatus.OK);
-        return new ResponseEntity<>( categoryRepository.findAllByTypeAndUser(direction, getCurrentUser(req, userRepository), pageable), HttpStatus.OK);
+        int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
+
+        return new ResponseEntity<>( categoryRepository.getCategoriesByUserIsInAndType(users, direction), HttpStatus.OK);
+//        return new ResponseEntity<>( categoryRepository.findAllByTypeAndUser(direction, getCurrentUser(req, userRepository), pageable), HttpStatus.OK);
     }
 
     @GetMapping("/search/{param}")
@@ -79,14 +82,15 @@ public class CategoryController {
                                                     HttpServletRequest request){
         try {
             int direction = (type.equals("income")) ? 0 : 1;
-            Optional<Category> categoryFound = categoryRepository.findByNameAndType(category.get("name").asText(), direction);
+            Optional<Category> categoryFound = categoryRepository.findByNameAndTypeAndUser(category.get("name").asText(),
+                    direction, new UserService(environment).getCurrentUserId(request, userRepository));
             if (categoryFound.isPresent())
                 return new ResponseEntity<>("This category already existed", HttpStatus.CONFLICT);
             else{
                 int parentId = (category.get("parent") == null) ? 0 : category.get("parent").asInt();
                 String icon = (category.get("icon") == null) ? "" : category.get("parent").asText();
                 Category newCategory = new Category(category.get("name").asText(), direction, List.of(),
-                        getCurrentUser(request, userRepository), true, icon);
+                        new UserService(environment).getCurrentUserId(request, userRepository), true, icon);
                 if (parentId != 0)
                     updateChildCategory(newCategory, parentId);
                 return new ResponseEntity<>(categoryRepository.save(newCategory), HttpStatus.OK);
