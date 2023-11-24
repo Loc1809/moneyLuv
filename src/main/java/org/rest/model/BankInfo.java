@@ -1,5 +1,7 @@
 package org.rest.model;
 
+import org.hibernate.validator.constraints.br.CPF;
+
 import javax.persistence.*;
 
 @Entity
@@ -12,9 +14,6 @@ public class BankInfo {
     @Column(name = "id")
     int id;
 
-    @Column(name = "account_number")
-    String accountNumber;
-
     @Column(name = "bank_name")
     String bankName;
 
@@ -24,25 +23,27 @@ public class BankInfo {
     @Column(name = "term")
     int term; // store by epoch time
 
-    @OneToOne
-    @JoinColumn(name = "user", nullable = true)
-    User user;
+//    @OneToOne
+//    @JoinColumn(name = "user", nullable = true)
+    @Column(name = "user")
+    int user;
 
     @Column(name = "active")
     Boolean active;
 
     @Column(name = "last_updated")
     String lastUpdated;
+//    STORE as yyyy-MM-dd HH:mm:ss
 
     public BankInfo() {
     }
 
-    public BankInfo(int id, String accountNumber, String bankName, float interestRate, int term) {
-        this.id = id;
-        this.accountNumber = accountNumber;
+    public BankInfo(String bankName, float interestRate, int term, String lastUpdated) {
         this.bankName = bankName;
         this.interestRate = interestRate;
         this.term = term;
+        this.active = true;
+        this.lastUpdated = lastUpdated;
     }
 
     public int getId() {
@@ -51,14 +52,6 @@ public class BankInfo {
 
     public void setId(int id) {
         this.id = id;
-    }
-
-    public String getAccountNumber() {
-        return accountNumber;
-    }
-
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
     }
 
     public String getBankName() {
@@ -85,7 +78,32 @@ public class BankInfo {
         this.term = term;
     }
 
-    public void setUser(User userId) {
+    public void setUser(int userId) {
         this.user = userId;
+    }
+
+    public int getUser() {
+        return user;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
+
+    public String getLastUpdated() {
+        return lastUpdated;
+    }
+
+    public void setLastUpdated(String lastUpdated) {
+        this.lastUpdated = lastUpdated;
+    }
+
+    public void updateRate(float rate, String lastUpdated){
+        this.interestRate = rate;
+        this.lastUpdated = lastUpdated;
     }
 }

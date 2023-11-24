@@ -22,9 +22,10 @@ public class Category {
     @JoinColumn(name = "child", nullable = true)
     List<Category> child;
 
-    @OneToOne
-    @JoinColumn(name = "user", nullable = true)
-    User user;
+//    @OneToOne
+//    @JoinColumn(name = "user", nullable = true)
+    @Column(name = "user", nullable = true)
+    int user;
 
     @Column(name = "active")
     Boolean active;
@@ -35,7 +36,7 @@ public class Category {
     public Category() {
     }
 
-    public Category(String name, int type, List<Category> parent, User user, Boolean active, String icon) {
+    public Category(String name, int type, List<Category> parent, int user, Boolean active, String icon) {
         this.name = name;
         this.type = type;
         this.child = parent;
@@ -95,14 +96,12 @@ public class Category {
     }
 
     public int getUser() {
-        if (user == null)
-            return 0;
-        return user.id;
+        return user;
     }
 
 //    public User getUserInfo() { return this.user; }
 
-    public void setUser(User user) {
+    public void setUser(int user) {
         this.user = user;
     }
 

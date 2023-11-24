@@ -1,5 +1,6 @@
 package org.rest.Service;
 
+import javax.naming.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -13,9 +14,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserService {
     private final Environment environment;
-
-    @Autowired
-    UserRepository userRepository;
 
     public UserService(Environment environment) {
         this.environment = environment;
@@ -32,12 +30,12 @@ public class UserService {
         return userRepository.getUserByUsername(username);
     }
 
-    public int getCurrentUserId(HttpServletRequest req){
+    public int getCurrentUserId(HttpServletRequest req, UserRepository userRepository) throws AuthenticationException {
         try{
             String username = getCurrentUsername(req);
             return userRepository.findUserByUsernameContains(username).getId();
-        } catch (Exception e){
-            return 0;
+        } catch (Throwable e){
+            throw new AuthenticationException(e.getMessage());
         }
     }
 
