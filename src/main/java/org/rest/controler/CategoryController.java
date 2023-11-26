@@ -64,8 +64,10 @@ public class CategoryController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<Object> updateCategoryById(@PathVariable String id, @RequestBody Category category){
-        Optional<Category> categoryFound = categoryRepository.findById(Integer.parseInt(id));
+//   LOC NOTE: USER
+    public ResponseEntity<Object> updateCategoryById(@PathVariable String id, @RequestBody Category category, HttpServletRequest req) throws AuthenticationException {
+        Optional<Category> categoryFound = categoryRepository.findByIdAndUser(Integer.parseInt(id),
+                new UserService(environment).getCurrentUserId(req, userRepository));
         if (categoryFound.isPresent()){
             Category oldOne = categoryFound.get();
             oldOne.setName(category.getName());

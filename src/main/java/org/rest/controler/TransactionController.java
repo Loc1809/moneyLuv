@@ -6,6 +6,7 @@ import io.jsonwebtoken.Jwts;
 import org.hibernate.query.criteria.internal.CriteriaBuilderImpl;
 import org.rest.Service.UserService;
 import org.rest.model.Transaction;
+import org.rest.model.User;
 import org.rest.repository.TransactionRepository;
 import org.rest.repository.CategoryRepository;
 import org.rest.repository.UserRepository;
@@ -66,9 +67,10 @@ public class TransactionController {
                                                     @RequestParam (value = "size", required = false) Integer size,
                                                     @PathVariable ("type") String type, HttpServletRequest request){
         Pageable pageable = (page != null) ? PageRequest.of(page, size) : PageRequest.of(0, Integer.MAX_VALUE);
+        User currentUser = new UserService(environment).getCurrentUser(request, userRepository);
         if (type.equals("income"))
-            return new ResponseEntity<>(transactionRepository.findAllByDirection(0, pageable), HttpStatus.OK);
-        return new ResponseEntity<>(transactionRepository.findAllByDirection(1, pageable), HttpStatus.OK);
+            return new ResponseEntity<>(transactionRepository.findAllByDirectionAndUser(0, currentUser, pageable), HttpStatus.OK);
+        return new ResponseEntity<>(transactionRepository.findAllByDirectionAndUser(1, currentUser, pageable), HttpStatus.OK);
     }
 
     @GetMapping("/statistic/{type}")
@@ -140,7 +142,8 @@ public class TransactionController {
                 Transaction transactionFound = isFound.get();
                 transactionFound.setAmount(transaction.get("amount").floatValue());
                 transactionFound.setDesc(transaction.get("desc").asText());
-                transactionFound.setTime(transaction.get("time").asText());
+                transactionFound.setTime(convertStringToEpoch(transaction.get("time").asText()).toString());
+                transactionFound.setActive(transaction.get("active").booleanValue());
                 // Not allow to update source and type
                  return new ResponseEntity<>(transactionRepository.save(transactionFound), HttpStatus.OK);
             } else
