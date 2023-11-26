@@ -72,6 +72,7 @@ public class CategoryController {
             Category oldOne = categoryFound.get();
             oldOne.setName(category.getName());
             oldOne.setIcon(category.getIcon());
+            oldOne.setActive(category.getActive());
             return new ResponseEntity<>(categoryRepository.save(oldOne), HttpStatus.OK);
         }
         else
