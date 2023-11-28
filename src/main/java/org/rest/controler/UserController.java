@@ -3,6 +3,7 @@ package org.rest.controler;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.hibernate.Session;
+import org.rest.Service.UserService;
 import org.rest.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -43,7 +44,16 @@ public class UserController {
         return new ResponseEntity<>(userRepository.findAll(), HttpStatus.OK);
     }
 
-    @GetMapping("search/{id}")
+    @GetMapping("/current")
+    public ResponseEntity<Object> getCurrentUser(HttpServletRequest req) {
+        try {
+            return new ResponseEntity<>(new UserService(environment).getCurrentUser(req, userRepository), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/search/{id}")
     public ResponseEntity<Object> getUserById(@PathVariable("id") Integer id) {
         Optional<User> userFound = userRepository.findById(id);
         return userFound.<ResponseEntity<Object>>map(user ->
@@ -76,13 +86,10 @@ public class UserController {
     @PostMapping("/create")
     public ResponseEntity<Object> createNewUser(@RequestBody User userModel, HttpServletRequest req) {
         try {
-//            Claims claims = getClaims(req, environment.getProperty("token.secret"));
-//            String subject = claims.getSubject();
-//            if (subject.equalsIgnoreCase("[admin]") || subject.equalsIgnoreCase("[ROLE_admin]")) {
-                Optional<User> userFound = userRepository.findUserByUsernameAndEmail(userModel.getUsername(), userModel.getEmail());
+                Optional<User> userFound = userRepository.findUserByUsernameOrEmail(userModel.getUsername(), userModel.getEmail());
                 if (userFound.isPresent())
                     return new ResponseEntity<>("This username has been taken!", HttpStatus.BAD_REQUEST);
-                User user = new User(userModel.getUsername(), new BCryptPasswordEncoder().encode(userModel.getPassword()),
+                User user = new User(userModel.getUsername(), new BCryptPasswordEncoder().encode(userModel.password()),
                         userModel.getPhoneNumber(), userModel.getEmail(), userModel.getName(), userModel.getIdentifyCode(),
                         userModel.getDateOfBirth(), "[ROLE_user]");
                 user.setEnabled(true);

@@ -36,12 +36,12 @@ public class Category {
     public Category() {
     }
 
-    public Category(String name, int type, List<Category> parent, int user, Boolean active, String icon) {
+    public Category(String name, int type, List<Category> parent, int user, String icon) {
         this.name = name;
         this.type = type;
         this.child = parent;
         this.user = user;
-        this.active = active;
+        this.active = true;
         this.icon = icon;
     }
 

@@ -28,25 +28,32 @@ public class Saving {
     @JoinColumn(name = "user")
     User user;
 
+//    @OneToOne(mappedBy = "id", fetch = FetchType.LAZY)
+//    BankInfo bankInfo;
+
+    @Transient
     @OneToOne
     @JoinColumn(name = "bank_info")
-    BankInfo bank_info;
+    BankInfo bankInfo;
 
     @Column(name = "active")
     Boolean active;
 
+    @Column(name = "updated_date")
+    String updatedDate;
+
     public Saving() {
     }
 
-    public Saving(int id, float amount, String startDate, String endDate, String desc, User user, BankInfo bank_info, Boolean active) {
-        this.id = id;
+    public Saving(float amount, String startDate, String endDate, String desc, User user, BankInfo bankInfo, Boolean active, String updatedDate) {
         this.amount = amount;
         this.startDate = startDate;
         this.endDate = endDate;
         this.desc = desc;
         this.user = user;
-        this.bank_info = bank_info;
+        this.bankInfo = bankInfo;
         this.active = active;
+        this.updatedDate = updatedDate;
     }
 
     public int getId() {
@@ -92,12 +99,12 @@ public class Saving {
         this.user = user;
     }
 
-    public BankInfo getBank_info() {
-        return bank_info;
+    public BankInfo getBankInfo() {
+        return bankInfo;
     }
 
-    public void setBank_info(BankInfo bank_info) {
-        this.bank_info = bank_info;
+    public void setBankInfo(BankInfo bankInfo) {
+        this.bankInfo = bankInfo;
     }
 
     public Boolean getStatus() {
@@ -114,5 +121,21 @@ public class Saving {
 
     public void setDesc(String desc) {
         this.desc = desc;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
+
+    public String getUpdatedDate() {
+        return updatedDate;
+    }
+
+    public void setUpdatedDate(String updatedDate) {
+        this.updatedDate = updatedDate;
     }
 }
