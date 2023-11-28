@@ -49,6 +49,7 @@ public class Transaction {
         this.category = category;
         this.user = user;
         this.direction = direction;
+        this.active = true;
     }
 
     public Transaction(int id, float amount, String time, String desc, Category category, User user) {
@@ -126,8 +127,8 @@ public class Transaction {
         this.direction = direction;
     }
 
-    public Category getCategory() {
-        return category;
+    public String getCategory() {
+        return this.category.getName();
     }
 
     public void setCategory(Category category) {

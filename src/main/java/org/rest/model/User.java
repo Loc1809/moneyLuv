@@ -114,8 +114,8 @@ public class User {
         this.username = username;
     }
 
-    public String getPassword() {
-        return password;
+    public String password(){
+        return this.password;
     }
 
     public void setPassword(String password) {

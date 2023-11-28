@@ -106,4 +106,9 @@ public class BankInfo {
         this.interestRate = rate;
         this.lastUpdated = lastUpdated;
     }
+
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
 }
