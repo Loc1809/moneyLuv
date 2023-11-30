@@ -1,17 +1,18 @@
 package org.rest.repository;
 
 
+import org.rest.model.Category;
 import org.rest.model.FinanceGoal;
 import org.rest.model.Transaction;
 import org.rest.model.User;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import javax.swing.*;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,9 +24,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
 
     Optional<Transaction> findByIdAndUser(int id, User user);
 
-    List<Transaction> findAllByDirection(int direction, Pageable pageable);
+    Page<Transaction> findAllByDirection(int direction, Pageable pageable);
 
-    List<Transaction> findAllByDirectionAndUser(int direction, User user, Pageable pageable);
+    Page<Transaction> findAllByDirectionAndUserAndActive(int direction, User user, boolean active, Pageable pageable);
+
+    List<Transaction> getTransactionByCategoryInAndTimeBetweenAndUserAndDirectionAndActive(Collection<Category> category, String time, String time2, User user, int direction, boolean active);
+    List<Transaction> getTransactionByCategoryInAndTimeBetween(Collection<Category> category, String time, String time2);
 
     List<Transaction> findAllByTimeBetweenAndUser(String start, String end, User user);
 

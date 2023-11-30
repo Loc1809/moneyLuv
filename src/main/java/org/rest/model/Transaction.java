@@ -16,7 +16,7 @@ public class Transaction {
     int id;
 
     @Column(name = "amount")
-    float amount;
+    Double amount;
 
     @Column(name = "time")
     String time;
@@ -42,16 +42,17 @@ public class Transaction {
     public Transaction() {
     }
 
-    public Transaction(float amount, String time, String desc, Category category, User user, int direction) {
+    public Transaction(Double amount, String time, String desc, Category category, User user, int direction) {
         this.amount = amount;
         this.time = time;
         this.desc = desc;
         this.category = category;
         this.user = user;
         this.direction = direction;
+        this.active = true;
     }
 
-    public Transaction(int id, float amount, String time, String desc, Category category, User user) {
+    public Transaction(int id, Double amount, String time, String desc, Category category, User user) {
         this.id = id;
         this.amount = amount;
         this.time = time;
@@ -77,11 +78,11 @@ public class Transaction {
         this.id = id;
     }
 
-    public float getAmount() {
+    public Double getAmount() {
         return amount;
     }
 
-    public void setAmount(float amount) {
+    public void setAmount(Double amount) {
         this.amount = amount;
     }
 
@@ -111,6 +112,9 @@ public class Transaction {
         this.user = user;
     }
 
+    public int direction(){
+        return direction;
+    }
 
     public String getDirection() {
         if (direction == 0)
@@ -126,8 +130,8 @@ public class Transaction {
         this.direction = direction;
     }
 
-    public Category getCategory() {
-        return category;
+    public String getCategory() {
+        return this.category.getName();
     }
 
     public void setCategory(Category category) {

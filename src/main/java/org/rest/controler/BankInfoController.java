@@ -1,18 +1,22 @@
 package org.rest.controler;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.rest.Service.SavingService;
 import org.rest.Service.UserService;
 import org.rest.model.BankInfo;
 import org.rest.repository.BankInfoRepository;
+import org.rest.repository.SavingRepository;
 import org.rest.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
-import javax.management.InstanceAlreadyExistsException;
 import javax.naming.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
 import java.text.ParseException;
@@ -36,6 +40,9 @@ public class BankInfoController {
     BankInfoRepository bankInfoRepository;
 
     @Autowired
+    SavingRepository savingRepository;
+
+    @Autowired
     UserRepository userRepository;
 
     Environment environment;
@@ -47,9 +54,13 @@ public class BankInfoController {
     private final List<Integer> TERM = Arrays.asList(-1, 1, 3, 6, 9, 12, 13, 18, 24, 36);
 
     @GetMapping("/")
-    public ResponseEntity<Object> getAllBank(HttpServletRequest req) throws AuthenticationException {
-        int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
-        return new ResponseEntity<>(bankInfoRepository.getBankInfoByUserIsIn(users), HttpStatus.OK);
+    public ResponseEntity<Object> getAllBank(@RequestParam (value = "page", required = false) Integer page,
+                                             @RequestParam (value = "size", required = false) Integer size,
+                                             HttpServletRequest req) throws AuthenticationException {
+//        int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
+        int[] users = new int[]{0};
+        Pageable pageable = (page != null) ? PageRequest.of(page, size) : PageRequest.of(0, Integer.MAX_VALUE);
+        return new ResponseEntity<>(bankInfoRepository.getBankInfoByUserIsInAndActive(users,true, pageable), HttpStatus.OK);
     }
 
     @GetMapping("/search")
@@ -93,9 +104,9 @@ public class BankInfoController {
     public ResponseEntity<Object> test(){
         try {
             RestTemplate restTemplate = new RestTemplate();
-            String newUrl = "https://webgia.com/lai-suat/";
-            String html = restTemplate.getForObject(newUrl, String.class);
-            Map<String, String[]> bankData = parseHtml(html);
+            String from = environment.getProperty("bankinfo.url");
+            String source = restTemplate.getForObject(from, String.class);
+            Map<String, String[]> bankData = getDataFromExternal (source);
 
             return new ResponseEntity<>(bankData, HttpStatus.OK);
         } catch (Exception e ){
@@ -103,9 +114,9 @@ public class BankInfoController {
         }
     }
 
-    public Map<String, String[]> parseHtml(String html) throws ParseException {
+    public Map<String, String[]> getDataFromExternal (String source) throws ParseException {
         Map<String, String[]> bankData = new LinkedHashMap<>();
-        Document doc = Jsoup.parse(html);
+        Document doc = Jsoup.parse(source);
 
         Element table = doc.select("table").get(0);
         Elements rows = table.select("tr");
@@ -155,6 +166,8 @@ public class BankInfoController {
                 bankInfo.setLastUpdated(updatedDate);
                 bankInfo.setInterestRate(Float.parseFloat(banksRate.get(bankInfo.getBankName())[TERM.indexOf(bankInfo.getTerm())]));
             }
+            SavingService savingService = new SavingService(environment);
+            savingService.updatePreviousSavingInDay(banksRate, getCurrentEpoch(), updatedDate, savingRepository);
             bankInfoRepository.saveAll(banks);
         } else {
 //            Don't have any banks

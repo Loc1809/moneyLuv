@@ -2,7 +2,8 @@ package org.rest.repository;
 
 
 import org.rest.model.BankInfo;
-import org.rest.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
@@ -10,7 +11,7 @@ import java.util.List;
 public interface BankInfoRepository extends JpaRepository<org.rest.model.BankInfo, Integer>{
     List<BankInfo> getBankInfoByBankNameContainingAndUser (String bankName, int user);
 
-    List<BankInfo> getBankInfoByUserIsIn(int[] user);
+    Page<BankInfo> getBankInfoByUserIsInAndActive(int[] user, boolean active, Pageable pageable);
 
     List<BankInfo> getBankInfoByUserOrderByBankName(int user);
 

@@ -2,11 +2,12 @@ package org.rest.repository;
 
 
 import org.rest.model.Category;
-import org.rest.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
+
+import java.util.Collection;
 import java.util.List;
 
 import java.util.Optional;
@@ -15,13 +16,22 @@ import java.util.Optional;
 public interface CategoryRepository extends JpaRepository<Category, Integer> {
 
 
-    Optional<Category> findByIdAndUser(Integer id, int user);
+    Optional<Category> findByIdAndUserInAndActive(Integer id, Collection<Integer> user, boolean active);
+
+    Optional<Category> findByIdAndUserAndActive(Integer id, int user, boolean active);
+
     Optional<Category> findByIdOrName(Integer id, String name);
-    Optional<Category> findByNameAndTypeAndUser(String name, int type, int user);
+
+    Category findByNameAndTypeAndUserInAndActive(String name, int type, Collection<Integer> user, Boolean active);
+
+    Category findByIdAndTypeAndUserInAndActive(int id, int type, Collection<Integer> user, Boolean active);
+
+
+    List<Category> findByTypeAndUserInAndActive(int type, Collection<Integer> user, boolean active);
 
     List<Category> findAllByUser(int user, Pageable pageable);
 
     Page<Category> findAllByTypeAndUser(int type, int user, Pageable pageable);
 
-    List<Category> getCategoriesByUserIsInAndType(int[] user, int type);
+    List<Category> getCategoriesByUserIsInAndTypeAndActive(int[] user, int type, boolean active);
 }

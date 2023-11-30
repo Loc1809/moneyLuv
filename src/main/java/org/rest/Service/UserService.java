@@ -19,6 +19,12 @@ public class UserService {
         this.environment = environment;
     }
 
+    public void updateUserAmount(User user, double amount, int direction, UserRepository userRepository) {
+        Double newAmount = (direction == 0) ?  user.getMoney() + amount : user.getMoney() - amount;
+        user.setMoney(newAmount);
+        userRepository.save(user);
+    }
+
     public String getCurrentUsername(HttpServletRequest req){
         Claims claims = getClaims(req, environment.getProperty("token.secret"));
         return claims.get("username").toString();

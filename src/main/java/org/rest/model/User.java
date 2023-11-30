@@ -42,7 +42,7 @@ public class User {
     User parentId;
 
     @Column(name = "money")
-    float money;
+    Double money;
 
     @Column(name = "enabled")
     Boolean enabled;
@@ -82,11 +82,11 @@ public class User {
         this.parentId = parentId;
     }
 
-    public float getMoney() {
+    public Double getMoney() {
         return money;
     }
 
-    public void setMoney(float money) {
+    public void setMoney(Double money) {
         this.money = money;
     }
 
@@ -114,8 +114,8 @@ public class User {
         this.username = username;
     }
 
-    public String getPassword() {
-        return password;
+    public String password(){
+        return this.password;
     }
 
     public void setPassword(String password) {

@@ -1,10 +1,9 @@
 package org.rest.controler;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
 import org.hibernate.query.criteria.internal.CriteriaBuilderImpl;
 import org.rest.Service.UserService;
+import org.rest.model.Category;
 import org.rest.model.Transaction;
 import org.rest.model.User;
 import org.rest.repository.TransactionRepository;
@@ -69,59 +68,45 @@ public class TransactionController {
         Pageable pageable = (page != null) ? PageRequest.of(page, size) : PageRequest.of(0, Integer.MAX_VALUE);
         User currentUser = new UserService(environment).getCurrentUser(request, userRepository);
         if (type.equals("income"))
-            return new ResponseEntity<>(transactionRepository.findAllByDirectionAndUser(0, currentUser, pageable), HttpStatus.OK);
-        return new ResponseEntity<>(transactionRepository.findAllByDirectionAndUser(1, currentUser, pageable), HttpStatus.OK);
+            return new ResponseEntity<>(transactionRepository.findAllByDirectionAndUserAndActive(0, currentUser, true, pageable), HttpStatus.OK);
+        return new ResponseEntity<>(transactionRepository.findAllByDirectionAndUserAndActive(1, currentUser, true, pageable), HttpStatus.OK);
     }
 
     @GetMapping("/statistic/{type}")
     public ResponseEntity<Object> searchTransaction(@PathVariable (value = "type", required = false, name = "") String type,
                                                     @RequestParam (value = "size", defaultValue = "10") String pageSize,
                                                     @RequestParam (value = "page", defaultValue = "1") String page,
-                                                    @RequestParam (value = "query", defaultValue = "") String query, // query=col1,col2,col3
-                                                    @RequestParam (value = "start_date", defaultValue = "") String startDate,
+                                                    @RequestParam (value = "cate", defaultValue = "") String cate, // cate=cate1,cate2,cate3
+                                                    @RequestParam (value = "startDate", required = false, defaultValue = "1900-01-01 00:00:00") String startDate,
                                                     @RequestParam (value = "end_date", defaultValue = "") String endDate,
                                                     HttpServletRequest req){
         try {
             int direction = (type.equals("income")) ? 0 : 1;
-            List<String> defaultValues = new ArrayList(Arrays.asList(/*size*/"10", /*page*/"1", /*query*/"", /*time*/"", ""));
-            StringBuilder baseQuery = new StringBuilder("SELECT * FROM transaction WHERE ");
-            String baseWhere = "1";
-            boolean isSelectWhere = true;
-            if (!query.equals(defaultValues.get(2))){
-                List<String> queries = List.of(query.split(","));
-                baseQuery = new StringBuilder("SELECT ");
-                for (String tmp : queries){
-                    baseQuery.append(tmp).append(", ");
+            endDate = (endDate.equals("")) ? String.valueOf(Instant.now().toEpochMilli()) : String.valueOf(convertStringToEpoch(endDate));
+            startDate = (startDate.equals("")) ? String.valueOf(Instant.now().toEpochMilli()) : String.valueOf(convertStringToEpoch(startDate));
+            User user = new UserService(environment).getCurrentUser(req, userRepository);
+            List<Category> categories = new ArrayList<>();
+            if (!cate.equals("")){
+                String[] values = cate.split(",");
+                for (String value : values){
+                    categories.add(categoryRepository.findByIdAndTypeAndUserInAndActive(Integer.parseInt(value), direction, List.of(0, user.getId()), true));
                 }
-                baseQuery.deleteCharAt(baseQuery.lastIndexOf(","));
-                baseQuery.append("FROM transaction");
-                isSelectWhere = false;
+            } else{
+                categories = categoryRepository.findByTypeAndUserInAndActive(direction, List.of(0, user.getId()), true);
             }
-            if (isSelectWhere)
-                baseQuery.append(" 1 ");
-            if (!startDate.equals("")){
-
-            }
-
-    //        Datetime query for later
-
-//            baseQuery.append(" LIMIT ").append(pageSize);
-//            baseQuery.append(" OFFSET ").append(Integer.parseInt(page) -1 );
-//            transactionRepository.queryCriteria(baseQuery.toString());
-//            List<Transaction> results = createTransactionCriteria(baseQuery.toString());
-//                        Direction, Time, User, Categories
-            List<Transaction> transactions = createTransactionCriteria(startDate, endDate, Arrays.asList(1, 2));
-            return new ResponseEntity<>(createTransactionCriteria(startDate, endDate, Arrays.asList(1, 2)), HttpStatus.OK);
+            List<Transaction> statistics = transactionRepository.getTransactionByCategoryInAndTimeBetweenAndUserAndDirectionAndActive
+                    (categories, startDate, endDate, user, direction, true);
+            return new ResponseEntity<>(statistics, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<Object> findTransactionByMoreThanOneAttribute(@RequestParam ("param") String param){
-        String query = "SELECT * FROM transaction WHERE ";
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
+//    @GetMapping("/search")
+//    public ResponseEntity<Object> findTransactionByMoreThanOneAttribute(@RequestParam ("param") String param){
+//        String query = "SELECT * FROM transaction WHERE ";
+//        return new ResponseEntity<>(HttpStatus.OK);
+//    }
 
     @GetMapping("/search/{id}")
     public ResponseEntity<Object> findTransactionById(@PathVariable Integer id){
@@ -137,13 +122,15 @@ public class TransactionController {
                                                         HttpServletRequest req){
         try {
             UserService userService = new UserService(environment);
-            Optional<Transaction> isFound = transactionRepository.findByIdAndUser(Integer.parseInt(id), userService.getCurrentUser(req, userRepository));
+            User user = userService.getCurrentUser(req, userRepository);
+            Optional<Transaction> isFound = transactionRepository.findByIdAndUser(Integer.parseInt(id), user);
             if (isFound.isPresent()) {
                 Transaction transactionFound = isFound.get();
-                transactionFound.setAmount(transaction.get("amount").floatValue());
+                userService.updateUserAmount(user, transaction.get("amount").doubleValue() - transactionFound.getAmount()
+                        , transactionFound.direction(), userRepository);
+                transactionFound.setAmount(transaction.get("amount").doubleValue());
                 transactionFound.setDesc(transaction.get("desc").asText());
                 transactionFound.setTime(convertStringToEpoch(transaction.get("time").asText()).toString());
-                transactionFound.setActive(transaction.get("active").booleanValue());
                 // Not allow to update source and type
                  return new ResponseEntity<>(transactionRepository.save(transactionFound), HttpStatus.OK);
             } else
@@ -157,11 +144,17 @@ public class TransactionController {
     public ResponseEntity<Object> createTransaction(@PathVariable ("type") String type, @RequestBody JsonNode transactionNode, HttpServletRequest request){
         try{
             UserService userService = new UserService(environment);
+            User user = userService.getCurrentUser(request, userRepository);
+
             int direction = (type.equals("income")) ? 0 : 1;
+            Category category = categoryRepository.findByIdAndUserInAndActive(transactionNode.get("category").asInt(), List.of(0, user.getId()), true).get();
+            if (category == null)
+                return new ResponseEntity<>("Invalid category", HttpStatus.BAD_REQUEST);
 //            Amount, time, desc, category, user, direction
-            Transaction transaction = new Transaction( transactionNode.get("amount").floatValue(), convertStringToEpoch(transactionNode.get("time").asText()).toString(),
+            Transaction transaction = new Transaction( transactionNode.get("amount").doubleValue(), convertStringToEpoch(transactionNode.get("time").asText()).toString(),
                     transactionNode.get("desc").asText(), categoryRepository.findById(transactionNode.get("category").asInt()).get(),
-                    userService.getCurrentUser(request, userRepository), direction);
+                    user, direction);
+            userService.updateUserAmount(user, transaction.getAmount(), direction, userRepository);
             return new ResponseEntity<>(transactionRepository.save(transaction), HttpStatus.OK);
         } catch (Exception e){
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -169,8 +162,22 @@ public class TransactionController {
     }
 
     @PostMapping("/delete/{id}")
+//    Disable forever
     public ResponseEntity<Object> deleteTransaction(@PathVariable ("id") String id, HttpServletRequest request){
-        return new ResponseEntity<>(null, HttpStatus.OK);
+        try {
+            UserService userService = new UserService(environment);
+            User user = userService.getCurrentUser(request, userRepository);
+            Optional<Transaction> isFound = transactionRepository.findByIdAndUser(Integer.parseInt(id), user);
+            if (isFound.isPresent()) {
+                Transaction transactionFound = isFound.get();
+                transactionFound.setActive(false);
+                userService.updateUserAmount(user, transactionFound.getAmount()*-1, transactionFound.direction(), userRepository);
+                 return new ResponseEntity<>(transactionRepository.save(transactionFound), HttpStatus.OK);
+            } else
+                return new ResponseEntity<>("Transaction not found", HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     public List<Transaction> createTransactionCriteria(String startDate, String endDate,  List<Integer> categories){
