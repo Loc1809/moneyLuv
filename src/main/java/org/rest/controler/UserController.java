@@ -7,6 +7,7 @@ import org.rest.Service.UserService;
 import org.rest.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -99,6 +100,8 @@ public class UserController {
                 return new ResponseEntity<>(response, HttpStatus.OK);
 //            } else
 //                return new ResponseEntity<>("Only [admin] can do it", HttpStatus.UNAUTHORIZED);
+        } catch (DataIntegrityViolationException dupplicate){
+            return new ResponseEntity<>("Database error, please try again", HttpStatus.CONFLICT);
         } catch (AuthenticationException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {

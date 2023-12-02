@@ -1,6 +1,9 @@
 package org.rest.model;
 
 import javax.persistence.*;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 @Entity
 @TableGenerator(name = "tableGeneratorSaving", table = "id_generator", pkColumnName = "entity",
@@ -31,10 +34,9 @@ public class Saving {
 //    @OneToOne(mappedBy = "id", fetch = FetchType.LAZY)
 //    BankInfo bankInfo;
 
-    @Transient
     @OneToOne
-    @JoinColumn(name = "bank_info")
-    BankInfo bankInfo;
+    @JoinColumn(name = "transient_bank")
+    TransientBankInfo bankInfo;
 
     @Column(name = "active")
     Boolean active;
@@ -45,7 +47,7 @@ public class Saving {
     public Saving() {
     }
 
-    public Saving(float amount, String startDate, String endDate, String desc, User user, BankInfo bankInfo, Boolean active, String updatedDate) {
+    public Saving(float amount, String startDate, String endDate, String desc, User user, TransientBankInfo bankInfo, Boolean active, String updatedDate) {
         this.amount = amount;
         this.startDate = startDate;
         this.endDate = endDate;
@@ -72,8 +74,16 @@ public class Saving {
         this.amount = amount;
     }
 
-    public String getStartDate() {
+    public String startDate(){
         return startDate;
+    }
+
+    public String endDate(){
+        return endDate;
+    }
+
+    public String getStartDate() {
+        return convertEpochToDateString(startDate);
     }
 
     public void setStartDate(String startDate) {
@@ -81,7 +91,7 @@ public class Saving {
     }
 
     public String getEndDate() {
-        return endDate;
+        return convertEpochToDateString(endDate);
     }
 
     public void setEndDate(String endDate) {
@@ -99,11 +109,11 @@ public class Saving {
         this.user = user;
     }
 
-    public BankInfo getBankInfo() {
+    public TransientBankInfo getBankInfo() {
         return bankInfo;
     }
 
-    public void setBankInfo(BankInfo bankInfo) {
+    public void setBankInfo(TransientBankInfo bankInfo) {
         this.bankInfo = bankInfo;
     }
 
@@ -132,10 +142,15 @@ public class Saving {
     }
 
     public String getUpdatedDate() {
-        return updatedDate;
+        return convertEpochToDateString(updatedDate);
     }
 
     public void setUpdatedDate(String updatedDate) {
         this.updatedDate = updatedDate;
+    }
+
+    public String convertEpochToDateString(String epoch){
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return Instant.ofEpochMilli(Long.parseLong(epoch)).atZone(ZoneId.systemDefault()).toLocalDateTime().format(dtf);
     }
 }

@@ -62,6 +62,10 @@ public class Transaction {
 //        this.transactionSource = transactionSource;
     }
 
+    public String getIcon(){
+        return this.category.getIcon();
+    }
+
     public Boolean getActive() {
         return active;
     }

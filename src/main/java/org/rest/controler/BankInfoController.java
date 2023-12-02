@@ -6,12 +6,13 @@ import org.rest.Service.UserService;
 import org.rest.model.BankInfo;
 import org.rest.repository.BankInfoRepository;
 import org.rest.repository.SavingRepository;
+import org.rest.repository.TransientRepository;
 import org.rest.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -45,6 +46,9 @@ public class BankInfoController {
     @Autowired
     UserRepository userRepository;
 
+    @Autowired
+    TransientRepository transientRepository;
+
     Environment environment;
 
     public BankInfoController(Environment environment){
@@ -57,16 +61,16 @@ public class BankInfoController {
     public ResponseEntity<Object> getAllBank(@RequestParam (value = "page", required = false) Integer page,
                                              @RequestParam (value = "size", required = false) Integer size,
                                              HttpServletRequest req) throws AuthenticationException {
-//        int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
-        int[] users = new int[]{0};
+        int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
         Pageable pageable = (page != null) ? PageRequest.of(page, size) : PageRequest.of(0, Integer.MAX_VALUE);
         return new ResponseEntity<>(bankInfoRepository.getBankInfoByUserIsInAndActive(users,true, pageable), HttpStatus.OK);
     }
 
     @GetMapping("/search")
     public ResponseEntity<Object> searchBankInfo(@RequestParam ("query") String query, HttpServletRequest req) throws AuthenticationException {
-        return new ResponseEntity<>(bankInfoRepository.getBankInfoByBankNameContainingAndUser(query,
-                new UserService(environment).getCurrentUserId(req, userRepository)), HttpStatus.OK);
+        int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
+        return new ResponseEntity<>(bankInfoRepository.getBankInfoByBankNameContainingAndUserIsIn(query,
+                users), HttpStatus.OK);
     }
 
     @PostMapping("/create")
@@ -78,13 +82,15 @@ public class BankInfoController {
             bankInfo.setActive(true);
             bankInfo.setUser(userService.getCurrentUserId(req, userRepository));
             return new ResponseEntity<>(bankInfoRepository.save(bankInfo), HttpStatus.OK);
+        } catch (DataIntegrityViolationException dupplicate){
+            return new ResponseEntity<>("Database error, please try again", HttpStatus.CONFLICT);
         } catch (Exception e){
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<Object> updateBankInfoById(@PathVariable ("id") String id, JsonNode json){
+    public ResponseEntity<Object> updateBankInfoById(@PathVariable ("id") String id, @RequestBody JsonNode json){
         try {
             Optional<BankInfo> bankInfoFound = bankInfoRepository.findById(Integer.parseInt(id));
             if (bankInfoFound.isPresent()){
@@ -167,7 +173,7 @@ public class BankInfoController {
                 bankInfo.setInterestRate(Float.parseFloat(banksRate.get(bankInfo.getBankName())[TERM.indexOf(bankInfo.getTerm())]));
             }
             SavingService savingService = new SavingService(environment);
-            savingService.updatePreviousSavingInDay(banksRate, getCurrentEpoch(), updatedDate, savingRepository);
+            savingService.updatePreviousSavingInDay(banksRate, getCurrentEpoch(), updatedDate, savingRepository, transientRepository);
             bankInfoRepository.saveAll(banks);
         } else {
 //            Don't have any banks

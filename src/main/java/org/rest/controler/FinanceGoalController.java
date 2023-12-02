@@ -13,6 +13,7 @@ import org.rest.repository.TransactionRepository;
 import org.rest.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Repository;
@@ -67,6 +68,8 @@ public class FinanceGoalController {
                     endDate.toString(), direction, userService.getCurrentUser(request, userRepository));
             newGoal.setActive(true);
             return new ResponseEntity<>(financeGoalRepository.save(newGoal), HttpStatus.OK);
+        } catch (DataIntegrityViolationException dupplicate){
+            return new ResponseEntity<>("Database error, please try again", HttpStatus.CONFLICT);
         } catch (Exception e){
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

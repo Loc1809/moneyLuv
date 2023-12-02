@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 @Repository
 public interface BankInfoRepository extends JpaRepository<org.rest.model.BankInfo, Integer>{
-    List<BankInfo> getBankInfoByBankNameContainingAndUser (String bankName, int user);
+    List<BankInfo> getBankInfoByBankNameContainingAndUserIsIn(String bankName, int[] user);
 
     Page<BankInfo> getBankInfoByUserIsInAndActive(int[] user, boolean active, Pageable pageable);
 

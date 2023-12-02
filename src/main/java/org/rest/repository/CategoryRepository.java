@@ -33,5 +33,5 @@ public interface CategoryRepository extends JpaRepository<Category, Integer> {
 
     Page<Category> findAllByTypeAndUser(int type, int user, Pageable pageable);
 
-    List<Category> getCategoriesByUserIsInAndTypeAndActive(int[] user, int type, boolean active);
+    List<Category> getCategoriesByUserIsInAndTypeAndActiveOrderByUser(int[] user, int type, boolean active);
 }

@@ -9,6 +9,7 @@ import org.rest.repository.CategoryRepository;
 import org.rest.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -47,7 +48,7 @@ public class CategoryController {
         Pageable pageable = (page != null) ? PageRequest.of(page, size) : PageRequest.of(0, Integer.MAX_VALUE);
         int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
 
-        return new ResponseEntity<>( categoryRepository.getCategoriesByUserIsInAndTypeAndActive(users, direction, true), HttpStatus.OK);
+        return new ResponseEntity<>( categoryRepository.getCategoriesByUserIsInAndTypeAndActiveOrderByUser(users, direction, true), HttpStatus.OK);
 //        return new ResponseEntity<>( categoryRepository.findAllByTypeAndUser(direction, getCurrentUser(req, userRepository), pageable), HttpStatus.OK);
     }
 
@@ -111,6 +112,8 @@ public class CategoryController {
                     updateChildCategory(newCategory, parentId);
                 return new ResponseEntity<>(categoryRepository.save(newCategory), HttpStatus.OK);
             }
+        } catch (DataIntegrityViolationException dupplicate){
+            return new ResponseEntity<>("Database error, please try again", HttpStatus.CONFLICT);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

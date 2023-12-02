@@ -2,7 +2,9 @@ package org.rest.Service;
 
 import org.rest.model.BankInfo;
 import org.rest.model.Saving;
+import org.rest.model.TransientBankInfo;
 import org.rest.repository.SavingRepository;
+import org.rest.repository.TransientRepository;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
@@ -21,14 +23,16 @@ public class SavingService {
 
     private final List<Integer> TERM = Arrays.asList(-1, 1, 3, 6, 9, 12, 13, 18, 24, 36);
 
-    public void updatePreviousSavingInDay(Map<String, String[]> bankInfo, String startOfDay, String updatedDate, SavingRepository savingRepository){
+    public void updatePreviousSavingInDay(Map<String, String[]> bankInfo, String startOfDay, String updatedDate,
+                                          SavingRepository savingRepository, TransientRepository transientRepository){
         try {
             List<Saving> previousSaving = savingRepository.getSavingByUpdatedDateBetween(startOfDay, updatedDate);
             for (Saving saved : previousSaving){
-                BankInfo oldOne = saved.getBankInfo();
+                TransientBankInfo oldOne = saved.getBankInfo();
                 String[] rates = bankInfo.get(oldOne.getBankName());
                 saved.setUpdatedDate(String.valueOf(Instant.now().toEpochMilli()));
                 oldOne.setInterestRate(Float.parseFloat(rates[TERM.indexOf(oldOne.getTerm())]));
+
                 saved.setBankInfo(oldOne);
             }
             savingRepository.saveAll(previousSaving);

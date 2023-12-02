@@ -11,6 +11,7 @@ import org.rest.repository.CategoryRepository;
 import org.rest.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -175,6 +176,8 @@ public class TransactionController {
                  return new ResponseEntity<>(transactionRepository.save(transactionFound), HttpStatus.OK);
             } else
                 return new ResponseEntity<>("Transaction not found", HttpStatus.NOT_FOUND);
+        } catch (DataIntegrityViolationException dupplicate){
+            return new ResponseEntity<>("Database error, please try again", HttpStatus.CONFLICT);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

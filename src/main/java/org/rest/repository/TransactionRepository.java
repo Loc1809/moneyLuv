@@ -24,9 +24,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
 
     Optional<Transaction> findByIdAndUser(int id, User user);
 
-    Page<Transaction> findAllByDirection(int direction, Pageable pageable);
+    List<Transaction> findAllByDirection(int direction, Pageable pageable);
 
-    Page<Transaction> findAllByDirectionAndUserAndActive(int direction, User user, boolean active, Pageable pageable);
+    List<Transaction> findAllByDirectionAndUserAndActive(int direction, User user, boolean active, Pageable pageable);
 
     List<Transaction> getTransactionByCategoryInAndTimeBetweenAndUserAndDirectionAndActive(Collection<Category> category, String time, String time2, User user, int direction, boolean active);
     List<Transaction> getTransactionByCategoryInAndTimeBetween(Collection<Category> category, String time, String time2);
