@@ -48,7 +48,7 @@ public class CategoryController {
         Pageable pageable = (page != null) ? PageRequest.of(page, size) : PageRequest.of(0, Integer.MAX_VALUE);
         int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
 
-        return new ResponseEntity<>( categoryRepository.getCategoriesByUserIsInAndTypeAndActiveOrderByUser(users, direction, true), HttpStatus.OK);
+        return new ResponseEntity<>( categoryRepository.findCategoriesByUser(users, direction), HttpStatus.OK);
 //        return new ResponseEntity<>( categoryRepository.findAllByTypeAndUser(direction, getCurrentUser(req, userRepository), pageable), HttpStatus.OK);
     }
 
@@ -76,7 +76,7 @@ public class CategoryController {
             return new ResponseEntity<>("Transaction Type not found", HttpStatus.NOT_FOUND);
     }
 
-    @PostMapping("/delete/{id}")
+    @PatchMapping("/delete/{id}")
 //    Disable forever
     public ResponseEntity<Object> deleteCategory(@PathVariable ("id") String id, HttpServletRequest request){
         try {

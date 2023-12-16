@@ -2,9 +2,12 @@ package org.rest.repository;
 
 
 import org.rest.model.Category;
+import org.rest.model.FinanceGoal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -34,4 +37,11 @@ public interface CategoryRepository extends JpaRepository<Category, Integer> {
     Page<Category> findAllByTypeAndUser(int type, int user, Pageable pageable);
 
     List<Category> getCategoriesByUserIsInAndTypeAndActiveOrderByUser(int[] user, int type, boolean active);
+
+    @Query(value = "SELECT * FROM category WHERE id NOT IN " +
+            "(SELECT child_id FROM category_child LEFT JOIN category ON " +
+            "category_child.category_id = category.id WHERE child IS NOT NULL) " +
+            "AND user IN :user AND active = true AND type = :type", nativeQuery = true)
+    List<Category> findCategoriesByUser(@Param("user") int[] user, @Param("type") int type);
+
 }

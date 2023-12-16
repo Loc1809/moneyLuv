@@ -162,7 +162,7 @@ public class TransactionController {
         }
     }
 
-    @PostMapping("/delete/{id}")
+    @PutMapping("/delete/{id}")
 //    Disable forever
     public ResponseEntity<Object> deleteTransaction(@PathVariable ("id") String id, HttpServletRequest request){
         try {

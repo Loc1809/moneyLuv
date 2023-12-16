@@ -39,7 +39,7 @@ public class UserService {
     public int getCurrentUserId(HttpServletRequest req, UserRepository userRepository) throws AuthenticationException {
         try{
             String username = getCurrentUsername(req);
-            return userRepository.findUserByUsernameContains(username).getId();
+            return userRepository.findUserByUsername(username).getId();
         } catch (Throwable e){
             throw new AuthenticationException(e.getMessage());
         }

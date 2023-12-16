@@ -27,10 +27,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.TimeZone;
+import java.util.*;
 
 @RestController
 @CrossOrigin
@@ -64,7 +61,7 @@ public class SavingController {
         try {
             User user = new UserService(environment).getCurrentUser(req, userRepository);
             String startDate = convertStringToEpoch(jsonNode.get("startDate").asText());
-            String endDate = convertStringToEpoch(jsonNode.get("endDate").asText());
+            String endDate = (jsonNode.get("endDate").asText().equals("")) ? "9999999999000" : convertStringToEpoch(jsonNode.get("endDate").asText());
             BankInfo bankInfo = bankInfoRepository.findById(jsonNode.get("bankInfo").asInt()).get();
             TransientBankInfo transientBank = new TransientBankInfo(bankInfo.getBankName(), bankInfo.getInterestRate(), bankInfo.getTerm());
             if (!List.of(0, user.getId()).contains(bankInfo.getUser()))
@@ -82,6 +79,25 @@ public class SavingController {
         }
     }
 
+    @PostMapping("/takemoney/{id}")
+    public ResponseEntity<Object> takeSaving(@PathVariable ("id") String id, HttpServletRequest request){
+         try {
+             UserService userService = new UserService(environment);
+             User user = userService.getCurrentUser(request, userRepository);
+             Optional<Saving> savingFound = savingRepository.findSavingByIdAndUser(Integer.parseInt(id), user);
+             if (savingFound.isPresent()){
+                 Saving curSaving = savingFound.get();
+                 curSaving.setStatus(false);
+                 double money = calculateMoney(curSaving, new HashMap<>());
+                 userService.updateUserAmount(user, money, 0, userRepository);
+                 return new ResponseEntity<>(savingRepository.save(curSaving), HttpStatus.OK);
+             } else
+                return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
+        } catch (Exception e){
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @PutMapping("/update/{id}")
     public ResponseEntity<Object> updateSaving(@RequestBody Saving saving, @PathVariable ("id") String id, HttpServletRequest request){
         try {
@@ -93,7 +109,6 @@ public class SavingController {
                 curSaving.setDesc(saving.getDesc());
                 curSaving.setStartDate(convertStringToEpoch(saving.startDate()));
                 curSaving.setEndDate(convertStringToEpoch(saving.endDate()));
-                curSaving.setStatus(saving.getStatus());
                 curSaving.setUpdatedDate(String.valueOf(Instant.now().toEpochMilli()));
                 return new ResponseEntity<>(savingRepository.save(curSaving), HttpStatus.OK);
             } else
@@ -101,6 +116,40 @@ public class SavingController {
         } catch (Exception e){
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @PatchMapping("/delete/{id}")
+    public ResponseEntity<Object> deleteSaving(@PathVariable ("id") String id, HttpServletRequest request){
+         try {
+            User user = new UserService(environment).getCurrentUser(request, userRepository);
+            Optional<Saving> savingFound = savingRepository.findSavingByIdAndUser(Integer.parseInt(id), user);
+            if (savingFound.isPresent()){
+                Saving curSaving = savingFound.get();
+                curSaving.setStatus(false);
+                return new ResponseEntity<>(savingRepository.save(curSaving), HttpStatus.OK);
+            } else
+                return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
+        } catch (Exception e){
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public double calculateMoney(Saving saving, Map<String, Float> baseRates){
+        double result = 0;
+        long startDate = Long.parseLong(saving.startDate());
+        long endDate = startDate + (long) saving.getBankInfo().getTerm() *2629743*1000;
+        long actualEndDate = Instant.now().toEpochMilli();
+        int days = (int) Math.floorDiv(actualEndDate - endDate, (86400 * 1000));
+        String bankName = saving.getBankInfo().getBankName();
+        if (baseRates.get(bankName) == null)
+            baseRates.put(bankName, bankInfoRepository.getBankInfoByBankNameAndTerm
+                    (saving.getBankInfo().getBankName(), -1).get(0).getInterestRate());
+        if (actualEndDate < endDate){
+            result = saving.getAmount() * (1+( baseRates.get(bankName) * days));
+        } else if (actualEndDate > endDate){
+            result = saving.getAmount() * (1 + saving.getBankInfo().getInterestRate() + days * baseRates.get(bankName));
+        }
+        return result;
     }
 
     public static String convertStringToEpoch(String timeStr) throws ParseException {

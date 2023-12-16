@@ -1,8 +1,10 @@
 package org.rest.controler;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.hibernate.Session;
+import org.json.JSONObject;
 import org.rest.Service.UserService;
 import org.rest.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,13 +64,30 @@ public class UserController {
                 new ResponseEntity<>("User with id " + id + " not found!", HttpStatus.NOT_FOUND));
     }
 
+//    Chi cho update current user
+    @PutMapping("/update")
+    public ResponseEntity<Object> updateUser(@RequestBody User user,
+                                             HttpServletRequest req) {
+        try {
+            User currrent = new UserService(environment).getCurrentUser(req, userRepository);
+            currrent.setEmail(user.getEmail());
+            currrent.setDateOfBirth(user.getDateOfBirth());
+            currrent.setName(user.getName());
+            currrent.setIdentifyCode(user.getIdentifyCode());
+            currrent.setPhoneNumber(user.getPhoneNumber());
+            return new ResponseEntity<>(userRepository.save(currrent), HttpStatus.OK);
+        } catch (Exception e){
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
     @PutMapping("/upgrade/{id}")
     public ResponseEntity<Object> makeUserAdmin(@PathVariable String id, HttpServletRequest req) {
         try {
             Claims claims = getClaims(req, environment.getProperty("token.secret"));
             String subject = claims.getSubject();
-            if (subject.equalsIgnoreCase("[ROLE_admin]")) {
+            if (subject.contains("[ROLE_admin]")) {
                 Optional<User> userFound = userRepository.findById(Integer.valueOf(id));
                 if (userFound.isPresent()) {
                     User currentUser = userFound.get();
@@ -115,17 +134,32 @@ public class UserController {
     public ResponseEntity<Object> lockUser(HttpServletRequest req, @PathVariable("id") Integer id, @RequestParam("action") String action) {
         try {
 //            Enable/Lock
-            boolean status = action.equals("enable");
-            Optional<User> userFound = userRepository.findById(id);
-            if (userFound.isPresent()) {
-                User thisUser = userFound.get();
-                thisUser.setEnabled(status);
-                return new ResponseEntity<>(userRepository.save(thisUser), HttpStatus.OK);
-            }
-            return new ResponseEntity<>("User " + id + " not found!", HttpStatus.NOT_FOUND);
+            Claims claims = getClaims(req, environment.getProperty("token.secret"));
+            String subject = claims.getSubject();
+            if (subject.contains("[ROLE_admin]")) {
+                boolean status = action.equals("enable");
+                Optional<User> userFound = userRepository.findById(id);
+                if (userFound.isPresent()) {
+                    User thisUser = userFound.get();
+                    thisUser.setEnabled(status);
+                    return new ResponseEntity<>(userRepository.save(thisUser), HttpStatus.OK);
+                } else
+                    return new ResponseEntity<>("User " + id + " not found!", HttpStatus.NOT_FOUND);
+            } else
+                return new ResponseEntity<>("Only admin can do this", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getCause().getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @PostMapping("/setmoney")
+    public ResponseEntity<Object> setMoneyWhenStart(HttpServletRequest request, @RequestBody JsonNode jsonNode) {
+        User currentUser = new UserService(environment).getCurrentUser(request, userRepository);
+        if (currentUser.getMoney() == null){
+            currentUser.setMoney(jsonNode.get("money").doubleValue());
+            return new ResponseEntity<>(userRepository.save(currentUser), HttpStatus.OK);
+        } else
+            return new ResponseEntity<>("User already set money", HttpStatus.BAD_REQUEST);
     }
 
     public List<String> getUserRoles(){

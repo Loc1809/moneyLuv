@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.rest.Service.SavingService;
 import org.rest.Service.UserService;
 import org.rest.model.BankInfo;
+import org.rest.model.Saving;
+import org.rest.model.User;
 import org.rest.repository.BankInfoRepository;
 import org.rest.repository.SavingRepository;
 import org.rest.repository.TransientRepository;
@@ -90,9 +92,10 @@ public class BankInfoController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<Object> updateBankInfoById(@PathVariable ("id") String id, @RequestBody JsonNode json){
+    public ResponseEntity<Object> updateBankInfoById(@PathVariable ("id") String id, @RequestBody JsonNode json, HttpServletRequest req){
         try {
-            Optional<BankInfo> bankInfoFound = bankInfoRepository.findById(Integer.parseInt(id));
+            User user = new UserService(environment).getCurrentUser(req, userRepository);
+            Optional<BankInfo> bankInfoFound = bankInfoRepository.getBankInfoByIdAndUserAndActive(Integer.parseInt(id), user.getId(), true);
             if (bankInfoFound.isPresent()){
                 BankInfo bankInfo = bankInfoFound.get();
                 bankInfo.setBankName(json.get("bankName").asText());
@@ -101,6 +104,22 @@ public class BankInfoController {
                 return new ResponseEntity<>(bankInfoRepository.save(bankInfo), HttpStatus.OK);
             } else
                 return new ResponseEntity<>("Obj not found", HttpStatus.NOT_FOUND);
+        } catch (Exception e){
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PatchMapping("/delete/{id}")
+    public ResponseEntity<Object> deleteBankInfo(@PathVariable ("id") String id, HttpServletRequest request){
+         try {
+            User user = new UserService(environment).getCurrentUser(request, userRepository);
+            Optional<BankInfo> bankInfoFound = bankInfoRepository.getBankInfoByIdAndUserAndActive(Integer.parseInt(id), user.getId(), true);
+            if (bankInfoFound.isPresent()){
+                BankInfo curBankInfo = bankInfoFound.get();
+                curBankInfo.setActive(false);
+                return new ResponseEntity<>(bankInfoRepository.save(curBankInfo), HttpStatus.OK);
+            } else
+                return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
         } catch (Exception e){
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

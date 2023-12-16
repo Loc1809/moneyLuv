@@ -76,15 +76,33 @@ public class FinanceGoalController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<Object>updateGoal(@PathVariable ("id") String id, @RequestBody FinanceGoal financeGoal){
+    public ResponseEntity<Object>updateGoal(@PathVariable ("id") String id, @RequestBody FinanceGoal financeGoal,
+                                            HttpServletRequest req){
         try {
-            Optional<FinanceGoal> found = financeGoalRepository.findById(Integer.parseInt(id));
+            User user = new UserService(environment).getCurrentUser(req, userRepository);
+            Optional<FinanceGoal> found = financeGoalRepository.getFinanceGoalByIdAndUserAndActive(Integer.parseInt(id), user, true);
             if (found.isPresent()) {
                 FinanceGoal current = found.get();
-                current.setActive(financeGoal.isActive());
                 current.setAmount(financeGoal.getAmount());
                 current.setStartDate(convertStringToEpoch(financeGoal.getStartDate()).toString());
                 current.setEndDate(convertStringToEpoch(financeGoal.getEndDate()).toString());
+                return new ResponseEntity<>(financeGoalRepository.save(current), HttpStatus.OK);
+            }else
+                return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
+        } catch (Exception e){
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PatchMapping("/delete/{id}")
+    public ResponseEntity<Object> deleteGoal(@PathVariable ("id") String id,
+                                            HttpServletRequest req){
+        try {
+            User user = new UserService(environment).getCurrentUser(req, userRepository);
+            Optional<FinanceGoal> found = financeGoalRepository.getFinanceGoalByIdAndUserAndActive(Integer.parseInt(id), user, true);
+            if (found.isPresent()) {
+                FinanceGoal current = found.get();
+                current.setActive(false);
                 return new ResponseEntity<>(financeGoalRepository.save(current), HttpStatus.OK);
             }else
                 return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
