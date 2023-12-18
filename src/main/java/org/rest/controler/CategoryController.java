@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.naming.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -43,11 +44,11 @@ public class CategoryController {
     public ResponseEntity<Object> getAllCategory(@PathVariable ("type") String type,
                                                  @RequestParam(value = "page", required = false) Integer page,
                                                  @RequestParam (value = "size", required = false) Integer size,
-                                                 HttpServletRequest req) throws AuthenticationException {
+                                                 HttpServletRequest req, HttpServletResponse res) throws AuthenticationException {
         int direction = (type.equals("income")) ? 0 : 1;
         Pageable pageable = (page != null) ? PageRequest.of(page, size) : PageRequest.of(0, Integer.MAX_VALUE);
         int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
-
+        res.setContentType("application/json");
         return new ResponseEntity<>( categoryRepository.findCategoriesByUser(users, direction), HttpStatus.OK);
 //        return new ResponseEntity<>( categoryRepository.findAllByTypeAndUser(direction, getCurrentUser(req, userRepository), pageable), HttpStatus.OK);
     }
@@ -76,7 +77,7 @@ public class CategoryController {
             return new ResponseEntity<>("Transaction Type not found", HttpStatus.NOT_FOUND);
     }
 
-    @PatchMapping("/delete/{id}")
+    @PutMapping("/delete/{id}")
 //    Disable forever
     public ResponseEntity<Object> deleteCategory(@PathVariable ("id") String id, HttpServletRequest request){
         try {

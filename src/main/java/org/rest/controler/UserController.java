@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.hibernate.Session;
-import org.json.JSONObject;
 import org.rest.Service.UserService;
 import org.rest.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +24,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.rest.model.User;
-import org.springframework.web.client.RestTemplate;
 
 @CrossOrigin
 @RestController
@@ -112,13 +110,13 @@ public class UserController {
                 User user = new User(userModel.getUsername(), new BCryptPasswordEncoder().encode(userModel.password()),
                         userModel.getPhoneNumber(), userModel.getEmail(), userModel.getName(), userModel.getIdentifyCode(),
                         userModel.getDateOfBirth(), "[ROLE_user]");
+                if (userModel.parent() != null)
+                    user.setParent(userRepository.findById(userModel.parentId()).get());
                 user.setEnabled(true);
                 User response = userRepository.save(user);
                 Session session = entityManager.unwrap(Session.class);
                 session.evict(response);
                 return new ResponseEntity<>(response, HttpStatus.OK);
-//            } else
-//                return new ResponseEntity<>("Only [admin] can do it", HttpStatus.UNAUTHORIZED);
         } catch (DataIntegrityViolationException dupplicate){
             return new ResponseEntity<>("Database error, please try again", HttpStatus.CONFLICT);
         } catch (AuthenticationException e) {
@@ -129,7 +127,7 @@ public class UserController {
     }
 //    public
 
-    @PutMapping("/user/lock/{id}")
+    @PutMapping("/lock/{id}")
 //    @PreAuthorize("hasRole('ROLE_admin')")
     public ResponseEntity<Object> lockUser(HttpServletRequest req, @PathVariable("id") Integer id, @RequestParam("action") String action) {
         try {
@@ -152,6 +150,33 @@ public class UserController {
         }
     }
 
+    @PostMapping("/setparent/{id}")
+    public ResponseEntity<Object> setParent(@PathVariable ("id") Integer id, HttpServletRequest req){
+        try{
+            Optional<User> userFound = userRepository.findById(id);
+            if (userFound.isPresent()){
+                UserService userService = new UserService(environment);
+                User currentUser = userService.getCurrentUser(req, userRepository);
+                currentUser.setParent(userFound.get());
+                return new ResponseEntity<>(userRepository.save(currentUser), HttpStatus.OK);
+            }
+            return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
+        } catch (Exception e){
+            return new ResponseEntity<>(e.getCause().getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PutMapping("/removeparent")
+    public ResponseEntity<Object> clearParent(HttpServletRequest req){
+        try {
+            User user = new UserService(environment).getCurrentUser(req, userRepository);
+            user.setParent(null);
+            return new ResponseEntity<>(userRepository.save(user), HttpStatus.OK);
+        } catch (Exception e){
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @PostMapping("/setmoney")
     public ResponseEntity<Object> setMoneyWhenStart(HttpServletRequest request, @RequestBody JsonNode jsonNode) {
         User currentUser = new UserService(environment).getCurrentUser(request, userRepository);
@@ -160,6 +185,17 @@ public class UserController {
             return new ResponseEntity<>(userRepository.save(currentUser), HttpStatus.OK);
         } else
             return new ResponseEntity<>("User already set money", HttpStatus.BAD_REQUEST);
+    }
+
+    @GetMapping("/child")
+    public ResponseEntity<Object> getChild(HttpServletRequest request){
+        return new ResponseEntity<>(getChildAccounts(request), HttpStatus.OK);
+    }
+
+    public List<User> getChildAccounts(HttpServletRequest request){
+        UserService userService = new UserService(environment);
+        User currentUser = userService.getCurrentUser(request, userRepository);
+        return userRepository.getUserByParent(currentUser);
     }
 
     public List<String> getUserRoles(){

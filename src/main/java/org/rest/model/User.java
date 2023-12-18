@@ -39,7 +39,7 @@ public class User {
 
     @ManyToOne
     @JoinColumn(name = "parent_id")
-    User parentId;
+    User parent;
 
     @Column(name = "money")
     Double money;
@@ -74,12 +74,26 @@ public class User {
         this.enabled = active;
     }
 
-    public User getParentId() {
-        return parentId;
+    public User parent(){return parent;}
+
+    public String getParent(){
+        try {
+            return parent.getName();
+        } catch (Exception e) {
+            return "";
+        }
     }
 
-    public void setParentId(User parentId) {
-        this.parentId = parentId;
+    public int parentId() {
+        try {
+            return parent.getId();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    public void setParent(User parent) {
+        this.parent = parent;
     }
 
     public Double getMoney() {

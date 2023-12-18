@@ -51,7 +51,7 @@ public class FinanceGoalController {
     public ResponseEntity<Object> getGoalByUser(HttpServletRequest request){
         try {
             UserService userService = new UserService(environment);
-            return new ResponseEntity<>(financeGoalRepository.getFinanceGoalByUser(userService.getCurrentUser(request, userRepository)), HttpStatus.OK);
+            return new ResponseEntity<>(financeGoalRepository.getFinanceGoalByUserAndActive(userService.getCurrentUser(request, userRepository), true), HttpStatus.OK);
         }catch (Exception e){
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -94,7 +94,7 @@ public class FinanceGoalController {
         }
     }
 
-    @PatchMapping("/delete/{id}")
+    @PutMapping("/delete/{id}")
     public ResponseEntity<Object> deleteGoal(@PathVariable ("id") String id,
                                             HttpServletRequest req){
         try {

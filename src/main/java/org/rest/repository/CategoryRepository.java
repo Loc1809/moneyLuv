@@ -40,7 +40,7 @@ public interface CategoryRepository extends JpaRepository<Category, Integer> {
 
     @Query(value = "SELECT * FROM category WHERE id NOT IN " +
             "(SELECT child_id FROM category_child LEFT JOIN category ON " +
-            "category_child.category_id = category.id WHERE child IS NOT NULL) " +
+            "category_child.category_id = category.id) " +
             "AND user IN :user AND active = true AND type = :type", nativeQuery = true)
     List<Category> findCategoriesByUser(@Param("user") int[] user, @Param("type") int type);
 

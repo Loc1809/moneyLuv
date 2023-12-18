@@ -78,25 +78,36 @@ public class TransactionController {
                                                     @RequestParam (value = "size", defaultValue = "10") String pageSize,
                                                     @RequestParam (value = "page", defaultValue = "1") String page,
                                                     @RequestParam (value = "cate", defaultValue = "") String cate, // cate=cate1,cate2,cate3
-                                                    @RequestParam (value = "startDate", required = false, defaultValue = "1900-01-01 00:00:00") String startDate,
-                                                    @RequestParam (value = "end_date", defaultValue = "") String endDate,
+                                                    @RequestParam (value = "start_date", defaultValue = "") String startDate,
+                                                    @RequestParam (value = "end_date", defaultValue = "")String endDate,
+                                                    @RequestParam (value = "child", defaultValue = "") String childId,
                                                     HttpServletRequest req){
         try {
             int direction = (type.equals("income")) ? 0 : 1;
             endDate = (endDate.equals("")) ? String.valueOf(Instant.now().toEpochMilli()) : String.valueOf(convertStringToEpoch(endDate));
             startDate = (startDate.equals("")) ? String.valueOf(Instant.now().toEpochMilli()) : String.valueOf(convertStringToEpoch(startDate));
-            User user = new UserService(environment).getCurrentUser(req, userRepository);
+            User currentUser = new UserService(environment).getCurrentUser(req, userRepository);
             List<Category> categories = new ArrayList<>();
+            List<Integer> users =List.of(0, currentUser.getId());
+            if (!childId.equals("")){
+                Optional<User> childUser = userRepository.findById(Integer.parseInt(childId));
+                if (childUser.isPresent()){
+                    if (!(childUser.get().parent().getId() == currentUser.getId()))
+                        return new ResponseEntity<>("You can only view information of your child.", HttpStatus.FORBIDDEN);
+                    users = List.of(0, childUser.get().getId());
+                } else
+                    return new ResponseEntity<>("Error while retrieving child account", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
             if (!cate.equals("")){
                 String[] values = cate.split(",");
                 for (String value : values){
-                    categories.add(categoryRepository.findByIdAndTypeAndUserInAndActive(Integer.parseInt(value), direction, List.of(0, user.getId()), true));
+                    categories.add(categoryRepository.findByIdAndTypeAndUserInAndActive(Integer.parseInt(value), direction, users, true));
                 }
             } else{
-                categories = categoryRepository.findByTypeAndUserInAndActive(direction, List.of(0, user.getId()), true);
+                categories = categoryRepository.findByTypeAndUserInAndActive(direction, users, true);
             }
             List<Transaction> statistics = transactionRepository.getTransactionByCategoryInAndTimeBetweenAndUserAndDirectionAndActive
-                    (categories, startDate, endDate, user, direction, true);
+                    (categories, startDate, endDate, currentUser, direction, true);
             return new ResponseEntity<>(statistics, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

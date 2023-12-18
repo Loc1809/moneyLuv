@@ -109,7 +109,7 @@ public class BankInfoController {
         }
     }
 
-    @PatchMapping("/delete/{id}")
+    @PutMapping("/delete/{id}")
     public ResponseEntity<Object> deleteBankInfo(@PathVariable ("id") String id, HttpServletRequest request){
          try {
             User user = new UserService(environment).getCurrentUser(request, userRepository);

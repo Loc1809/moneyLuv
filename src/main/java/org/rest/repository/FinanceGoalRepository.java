@@ -10,7 +10,7 @@ import java.util.Optional;
 
 @Repository
 public interface FinanceGoalRepository extends JpaRepository<FinanceGoal, Integer> {
-    List<FinanceGoal> getFinanceGoalByUser(User user);
+    List<FinanceGoal> getFinanceGoalByUserAndActive(User user, boolean active);
 
     Optional<FinanceGoal> getFinanceGoalByIdAndUserAndActive(int id, User user, boolean active);
 

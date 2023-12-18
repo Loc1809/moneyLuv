@@ -118,7 +118,7 @@ public class SavingController {
         }
     }
 
-    @PatchMapping("/delete/{id}")
+    @PutMapping("/delete/{id}")
     public ResponseEntity<Object> deleteSaving(@PathVariable ("id") String id, HttpServletRequest request){
          try {
             User user = new UserService(environment).getCurrentUser(request, userRepository);
@@ -143,7 +143,7 @@ public class SavingController {
         String bankName = saving.getBankInfo().getBankName();
         if (baseRates.get(bankName) == null)
             baseRates.put(bankName, bankInfoRepository.getBankInfoByBankNameAndTerm
-                    (saving.getBankInfo().getBankName(), -1).get(0).getInterestRate());
+                    (bankName, -1).get(0).getInterestRate());
         if (actualEndDate < endDate){
             result = saving.getAmount() * (1+( baseRates.get(bankName) * days));
         } else if (actualEndDate > endDate){
