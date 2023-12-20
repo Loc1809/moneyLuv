@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.rest.Service.SavingService;
 import org.rest.Service.UserService;
 import org.rest.model.BankInfo;
-import org.rest.model.Saving;
 import org.rest.model.User;
 import org.rest.repository.BankInfoRepository;
 import org.rest.repository.SavingRepository;
@@ -35,6 +34,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.scheduling.annotation.Scheduled;
+
 @RestController
 @CrossOrigin
 @RequestMapping("/bankinfo")
@@ -59,19 +60,19 @@ public class BankInfoController {
 
     private final List<Integer> TERM = Arrays.asList(-1, 1, 3, 6, 9, 12, 13, 18, 24, 36);
 
-    @GetMapping("/")
+    @GetMapping("")
     public ResponseEntity<Object> getAllBank(@RequestParam (value = "page", required = false) Integer page,
-                                             @RequestParam (value = "size", required = false) Integer size,
+                                             @RequestParam (value = "size", required = false, defaultValue = "5") Integer size,
                                              HttpServletRequest req) throws AuthenticationException {
         int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
-        Pageable pageable = (page != null) ? PageRequest.of(page, size) : PageRequest.of(0, Integer.MAX_VALUE);
+        Pageable pageable = (page != null) ? PageRequest.of(page, size) : PageRequest.of(0, 5);
         return new ResponseEntity<>(bankInfoRepository.getBankInfoByUserIsInAndActive(users,true, pageable), HttpStatus.OK);
     }
 
     @GetMapping("/search")
     public ResponseEntity<Object> searchBankInfo(@RequestParam ("query") String query, HttpServletRequest req) throws AuthenticationException {
         int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
-        return new ResponseEntity<>(bankInfoRepository.getBankInfoByBankNameContainingAndUserIsIn(query,
+        return new ResponseEntity<>(bankInfoRepository.getBankInfoByBankNameAndUserIsIn(query,
                 users), HttpStatus.OK);
     }
 
@@ -125,9 +126,12 @@ public class BankInfoController {
         }
     }
 
+//    02:00 every day
+    @Scheduled(cron = "0 0 2 * * ?")
     @GetMapping("/test")
     public ResponseEntity<Object> test(){
         try {
+            System.out.println("scheduling");
             RestTemplate restTemplate = new RestTemplate();
             String from = environment.getProperty("bankinfo.url");
             String source = restTemplate.getForObject(from, String.class);

@@ -11,7 +11,9 @@ import java.util.Optional;
 
 @Repository
 public interface BankInfoRepository extends JpaRepository<org.rest.model.BankInfo, Integer>{
-    List<BankInfo> getBankInfoByBankNameContainingAndUserIsIn(String bankName, int[] user);
+    List<BankInfo> getBankInfoByBankNameAndUserIsIn(String bankName, int[] user);
+
+    List<BankInfo> getBankInfoByBankName(String bankName);
 
     List<BankInfo> getBankInfoByBankNameAndTerm(String bankName, int term);
 

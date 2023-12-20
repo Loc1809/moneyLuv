@@ -95,6 +95,7 @@ public class TransactionController {
                     if (!(childUser.get().parent().getId() == currentUser.getId()))
                         return new ResponseEntity<>("You can only view information of your child.", HttpStatus.FORBIDDEN);
                     users = List.of(0, childUser.get().getId());
+                    currentUser = childUser.get();
                 } else
                     return new ResponseEntity<>("Error while retrieving child account", HttpStatus.INTERNAL_SERVER_ERROR);
             }

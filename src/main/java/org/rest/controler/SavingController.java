@@ -2,6 +2,8 @@ package org.rest.controler;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.KeyFactorySpi;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.rest.Service.UserService;
 import org.rest.model.BankInfo;
 import org.rest.model.Saving;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.naming.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.text.ParseException;
@@ -56,6 +59,27 @@ public class SavingController {
         return new ResponseEntity<>(savingRepository.getSavingByUserAndActive(user, true), HttpStatus.OK);
     }
 
+    @GetMapping("/calculate")
+    public ResponseEntity<Object> calculateUserSaving(HttpServletRequest req, HttpServletResponse res) throws AuthenticationException, JSONException {
+        User user = new UserService(environment).getCurrentUser(req, userRepository);
+        int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
+        List<Saving> savingList = savingRepository.getSavingByUserAndActive(user, true);
+        Double savingAmount = 0.0;
+        Double currentMoney = user.getMoney();
+        Double interest = 0.0;
+        Map<String, Float> baseRate = new HashMap<>();
+        for (Saving saving : savingList){
+            savingAmount += saving.getAmount();
+            interest += calculateMoney(saving, baseRate);
+        }
+        JSONObject response = new JSONObject();
+        response.put("savingAmount", savingAmount);
+        response.put("interest", interest);
+        response.put("currentMoney", currentMoney);
+        res.setContentType("application/json");
+        return new ResponseEntity<>(response.toString(), HttpStatus.OK);
+    }
+
     @PostMapping("/create")
     public ResponseEntity<Object> createSaving(@RequestBody JsonNode jsonNode, HttpServletRequest req){
         try {
@@ -88,7 +112,7 @@ public class SavingController {
              if (savingFound.isPresent()){
                  Saving curSaving = savingFound.get();
                  curSaving.setStatus(false);
-                 double money = calculateMoney(curSaving, new HashMap<>());
+                 double money = calculateMoney(curSaving, new HashMap<>()) + curSaving.getAmount();
                  userService.updateUserAmount(user, money, 0, userRepository);
                  return new ResponseEntity<>(savingRepository.save(curSaving), HttpStatus.OK);
              } else
@@ -136,28 +160,35 @@ public class SavingController {
 
     public double calculateMoney(Saving saving, Map<String, Float> baseRates){
         double result = 0;
-        long startDate = Long.parseLong(saving.startDate());
-        long endDate = startDate + (long) saving.getBankInfo().getTerm() *2629743*1000;
-        long actualEndDate = Instant.now().toEpochMilli();
-        int days = (int) Math.floorDiv(actualEndDate - endDate, (86400 * 1000));
         String bankName = saving.getBankInfo().getBankName();
-        if (baseRates.get(bankName) == null)
-            baseRates.put(bankName, bankInfoRepository.getBankInfoByBankNameAndTerm
-                    (bankName, -1).get(0).getInterestRate());
-        if (actualEndDate < endDate){
-            result = saving.getAmount() * (1+( baseRates.get(bankName) * days));
-        } else if (actualEndDate > endDate){
-            result = saving.getAmount() * (1 + saving.getBankInfo().getInterestRate() + days * baseRates.get(bankName));
+        if (bankInfoRepository.getBankInfoByBankName(bankName).get(0).getUser() != 0){
+            long startDate = Long.parseLong(saving.startDate());
+            long endDate = startDate + (long) saving.getBankInfo().getTerm() *2629743*1000;
+            long actualEndDate = Instant.now().toEpochMilli();
+            int days = (int) Math.floorDiv(actualEndDate - endDate, (86400 * 1000));
+            if (baseRates.get(bankName) == null)
+                baseRates.put(bankName, bankInfoRepository.getBankInfoByBankNameAndTerm
+                        (bankName, -1).get(0).getInterestRate());
+            if (actualEndDate < endDate){
+                result = saving.getAmount() * (( baseRates.get(bankName) * days));
+            } else if (actualEndDate > endDate){
+                result = saving.getAmount() * (saving.getBankInfo().getInterestRate() + days * baseRates.get(bankName));
+            }
+            return result;
+        } else {
+            return saving.getAmount();
         }
-        return result;
     }
 
     public static String convertStringToEpoch(String timeStr) throws ParseException {
-        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        df.setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
-        Date date = df.parse(timeStr);
-        return String.valueOf(date.getTime());
+        try {
+            SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            df.setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
+            Date date = df.parse(timeStr);
+            return String.valueOf(date.getTime());
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return "";
+        }
     }
-
-
 }
