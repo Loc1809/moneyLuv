@@ -1,6 +1,7 @@
 package org.rest.model;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 @Entity
 @TableGenerator(name = "tableGeneratorCategory", table = "id_generator", pkColumnName = "entity",

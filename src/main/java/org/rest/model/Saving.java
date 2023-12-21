@@ -91,7 +91,11 @@ public class Saving {
     }
 
     public String getEndDate() {
-        return convertEpochToDateString(endDate);
+        try {
+            return convertEpochToDateString(endDate);
+        } catch (Exception e){
+            return "";
+        }
     }
 
     public void setEndDate(String endDate) {

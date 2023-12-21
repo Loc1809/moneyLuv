@@ -164,6 +164,8 @@ public class TransactionController {
             if (category == null)
                 return new ResponseEntity<>("Invalid category", HttpStatus.BAD_REQUEST);
 //            Amount, time, desc, category, user, direction
+            if (!category.getType().equals(type))
+                return new ResponseEntity<>("Invalid category", HttpStatus.BAD_REQUEST);
             Transaction transaction = new Transaction( transactionNode.get("amount").doubleValue(), convertStringToEpoch(transactionNode.get("time").asText()).toString(),
                     transactionNode.get("desc").asText(), categoryRepository.findById(transactionNode.get("category").asInt()).get(),
                     user, direction);

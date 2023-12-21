@@ -3,7 +3,6 @@ package org.rest.controler;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.rest.Service.UserService;
 import org.rest.model.Category;
-import org.rest.model.Transaction;
 import org.rest.model.User;
 import org.rest.repository.CategoryRepository;
 import org.rest.repository.UserRepository;
@@ -19,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.naming.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -47,9 +47,22 @@ public class CategoryController {
                                                  HttpServletRequest req, HttpServletResponse res) throws AuthenticationException {
         int direction = (type.equals("income")) ? 0 : 1;
         Pageable pageable = (page != null) ? PageRequest.of(page, size) : PageRequest.of(0, Integer.MAX_VALUE);
-        int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
+        int currentUser = new UserService(environment).getCurrentUserId(req, userRepository);
+        int[] users = new int[]{0, currentUser};
         res.setContentType("application/json");
-        return new ResponseEntity<>( categoryRepository.findCategoriesByUser(users, direction), HttpStatus.OK);
+        List<Category> categories = categoryRepository.findCategoriesByUser(users, direction);
+        List<Category> result = new ArrayList<>();
+        for (Category category : categories) {
+            List<Category>child = new ArrayList<>();
+            for (Category c : category.getChild()) {
+                if (currentUser != c.getUser())
+                    continue;
+                child.add(c);
+            }
+            category.setChild(child);
+            result.add(category);
+        }
+        return new ResponseEntity<>( result, HttpStatus.OK);
 //        return new ResponseEntity<>( categoryRepository.findAllByTypeAndUser(direction, getCurrentUser(req, userRepository), pageable), HttpStatus.OK);
     }
 

@@ -1,7 +1,6 @@
 package org.rest.controler;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.KeyFactorySpi;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.rest.Service.UserService;
@@ -16,7 +15,6 @@ import org.rest.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,8 +22,6 @@ import org.springframework.web.bind.annotation.*;
 import javax.naming.AuthenticationException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.sql.SQLDataException;
-import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -70,7 +66,7 @@ public class SavingController {
         Map<String, Float> baseRate = new HashMap<>();
         for (Saving saving : savingList){
             savingAmount += saving.getAmount();
-            interest += calculateMoney(saving, baseRate);
+            interest += calculateInterest(saving, baseRate);
         }
         JSONObject response = new JSONObject();
         response.put("savingAmount", savingAmount);
@@ -83,7 +79,8 @@ public class SavingController {
     @PostMapping("/create")
     public ResponseEntity<Object> createSaving(@RequestBody JsonNode jsonNode, HttpServletRequest req){
         try {
-            User user = new UserService(environment).getCurrentUser(req, userRepository);
+            UserService userService = new UserService(environment);
+            User user = userService.getCurrentUser(req, userRepository);
             String startDate = convertStringToEpoch(jsonNode.get("startDate").asText());
             String endDate = (jsonNode.get("endDate").asText().equals("")) ? "9999999999000" : convertStringToEpoch(jsonNode.get("endDate").asText());
             BankInfo bankInfo = bankInfoRepository.findById(jsonNode.get("bankInfo").asInt()).get();
@@ -93,6 +90,7 @@ public class SavingController {
             Saving saving = new Saving(jsonNode.get("amount").floatValue(), startDate,
                     endDate, jsonNode.get("desc").asText(), user, transientRepository.save(transientBank),true,
                     String.valueOf(Instant.now().toEpochMilli()));
+            userService.updateUserAmount(user, saving.getAmount(), 1, userRepository);
             saving.setUpdatedDate(String.valueOf(Instant.now().toEpochMilli()));
             return new ResponseEntity<>(savingRepository.save(saving), HttpStatus.OK);
         } catch (DataIntegrityViolationException dupplicate){
@@ -112,7 +110,7 @@ public class SavingController {
              if (savingFound.isPresent()){
                  Saving curSaving = savingFound.get();
                  curSaving.setStatus(false);
-                 double money = calculateMoney(curSaving, new HashMap<>()) + curSaving.getAmount();
+                 double money = calculateInterest(curSaving, new HashMap<>()) + curSaving.getAmount();
                  userService.updateUserAmount(user, money, 0, userRepository);
                  return new ResponseEntity<>(savingRepository.save(curSaving), HttpStatus.OK);
              } else
@@ -125,15 +123,17 @@ public class SavingController {
     @PutMapping("/update/{id}")
     public ResponseEntity<Object> updateSaving(@RequestBody Saving saving, @PathVariable ("id") String id, HttpServletRequest request){
         try {
-            User user = new UserService(environment).getCurrentUser(request, userRepository);
+            UserService userService = new UserService(environment);
+            User user = userService.getCurrentUser(request, userRepository);
             Optional<Saving> savingFound = savingRepository.findSavingByIdAndUser(Integer.parseInt(id), user);
             if (savingFound.isPresent()){
                 Saving curSaving = savingFound.get();
                 curSaving.setAmount(saving.getAmount());
                 curSaving.setDesc(saving.getDesc());
                 curSaving.setStartDate(convertStringToEpoch(saving.startDate()));
-                curSaving.setEndDate(convertStringToEpoch(saving.endDate()));
                 curSaving.setUpdatedDate(String.valueOf(Instant.now().toEpochMilli()));
+                userService.updateUserAmount(user, saving.getAmount() - curSaving.getAmount()
+                            , 1, userRepository);
                 return new ResponseEntity<>(savingRepository.save(curSaving), HttpStatus.OK);
             } else
                 return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
@@ -145,11 +145,13 @@ public class SavingController {
     @PutMapping("/delete/{id}")
     public ResponseEntity<Object> deleteSaving(@PathVariable ("id") String id, HttpServletRequest request){
          try {
-            User user = new UserService(environment).getCurrentUser(request, userRepository);
+            UserService userService = new UserService(environment);
+            User user = userService.getCurrentUser(request, userRepository);
             Optional<Saving> savingFound = savingRepository.findSavingByIdAndUser(Integer.parseInt(id), user);
             if (savingFound.isPresent()){
                 Saving curSaving = savingFound.get();
                 curSaving.setStatus(false);
+                userService.updateUserAmount(user, curSaving.getAmount(), 0, userRepository);
                 return new ResponseEntity<>(savingRepository.save(curSaving), HttpStatus.OK);
             } else
                 return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
@@ -158,25 +160,34 @@ public class SavingController {
         }
     }
 
-    public double calculateMoney(Saving saving, Map<String, Float> baseRates){
+    public double calculateInterest(Saving saving, Map<String, Float> baseRates){
         double result = 0;
         String bankName = saving.getBankInfo().getBankName();
-        if (bankInfoRepository.getBankInfoByBankName(bankName).get(0).getUser() != 0){
-            long startDate = Long.parseLong(saving.startDate());
-            long endDate = startDate + (long) saving.getBankInfo().getTerm() *2629743*1000;
-            long actualEndDate = Instant.now().toEpochMilli();
-            int days = (int) Math.floorDiv(actualEndDate - endDate, (86400 * 1000));
+        if (bankInfoRepository.getBankInfoByBankName(bankName).get(0).getUser() == 0){
+            int currentTerm = saving.getBankInfo().getTerm();
+            long startDate = Long.parseLong(saving.startDate())/1000;
+            long endDate = startDate + (long) currentTerm *2629743;
+            long actualEndDate = Instant.now().toEpochMilli()/1000;
+            int daysPassed = (int) Math.floorDiv(actualEndDate - endDate, (86400));
             if (baseRates.get(bankName) == null)
                 baseRates.put(bankName, bankInfoRepository.getBankInfoByBankNameAndTerm
-                        (bankName, -1).get(0).getInterestRate());
-            if (actualEndDate < endDate){
-                result = saving.getAmount() * (( baseRates.get(bankName) * days));
-            } else if (actualEndDate > endDate){
-                result = saving.getAmount() * (saving.getBankInfo().getInterestRate() + days * baseRates.get(bankName));
+                        (bankName, -1).get(0).getInterestRate()/365);
+            if (currentTerm != -1){
+                if (actualEndDate < endDate){
+                    result = saving.getAmount() * (( baseRates.get(bankName) * daysPassed));
+                } else {
+                    double rate = saving.getBankInfo().getInterestRate();
+                    long timePassed = (actualEndDate - startDate);
+                    int cycleDone = (int) Math.floorDiv(timePassed, 2629743*currentTerm);
+                    int days = (int) Math.floorDiv(timePassed % (2629743 * currentTerm), 86400);
+                    result = saving.getAmount() * (rate*(currentTerm/12)*cycleDone + days * baseRates.get(bankName));
+                }
+            } else {
+                result = daysPassed*baseRates.get(bankName);
             }
             return result;
         } else {
-            return saving.getAmount();
+            return 0;
         }
     }
 

@@ -62,18 +62,18 @@ public class BankInfoController {
 
     @GetMapping("")
     public ResponseEntity<Object> getAllBank(@RequestParam (value = "page", required = false) Integer page,
-                                             @RequestParam (value = "size", required = false, defaultValue = "5") Integer size,
+                                             @RequestParam (value = "size", required = false) Integer size,
                                              HttpServletRequest req) throws AuthenticationException {
         int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
-        Pageable pageable = (page != null) ? PageRequest.of(page, size) : PageRequest.of(0, 5);
+        Pageable pageable = (page != null && size != null) ? PageRequest.of(page, size) : PageRequest.of(0, Integer.MAX_VALUE);
         return new ResponseEntity<>(bankInfoRepository.getBankInfoByUserIsInAndActive(users,true, pageable), HttpStatus.OK);
     }
 
     @GetMapping("/search")
     public ResponseEntity<Object> searchBankInfo(@RequestParam ("query") String query, HttpServletRequest req) throws AuthenticationException {
         int[] users = new int[]{0, new UserService(environment).getCurrentUserId(req, userRepository)};
-        return new ResponseEntity<>(bankInfoRepository.getBankInfoByBankNameAndUserIsIn(query,
-                users), HttpStatus.OK);
+        return new ResponseEntity<>(bankInfoRepository.getBankInfoByBankNameAndUserIsInAndActive(query,
+                users, true), HttpStatus.OK);
     }
 
     @PostMapping("/create")
