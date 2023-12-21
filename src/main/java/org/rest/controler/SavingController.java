@@ -110,7 +110,7 @@ public class SavingController {
              if (savingFound.isPresent()){
                  Saving curSaving = savingFound.get();
                  curSaving.setStatus(false);
-                 double money = calculateInterest(curSaving, new HashMap<>()) + curSaving.getAmount();
+                 double money = interestHandle(curSaving, new HashMap<>());
                  userService.updateUserAmount(user, money, 0, userRepository);
                  return new ResponseEntity<>(savingRepository.save(curSaving), HttpStatus.OK);
              } else
@@ -168,7 +168,7 @@ public class SavingController {
             long startDate = Long.parseLong(saving.startDate())/1000;
             long endDate = startDate + (long) currentTerm *2629743;
             long actualEndDate = Instant.now().toEpochMilli()/1000;
-            int daysPassed = (int) Math.floorDiv(actualEndDate - endDate, (86400));
+            int daysPassed = (int) Math.floorDiv(actualEndDate - startDate, (86400));
             if (baseRates.get(bankName) == null)
                 baseRates.put(bankName, bankInfoRepository.getBankInfoByBankNameAndTerm
                         (bankName, -1).get(0).getInterestRate()/365);
@@ -179,10 +179,61 @@ public class SavingController {
                     double rate = saving.getBankInfo().getInterestRate();
                     long timePassed = (actualEndDate - startDate);
                     int cycleDone = (int) Math.floorDiv(timePassed, 2629743*currentTerm);
-                    int days = (int) Math.floorDiv(timePassed % (2629743 * currentTerm), 86400);
-                    result = saving.getAmount() * (rate*(currentTerm/12)*cycleDone + days * baseRates.get(bankName));
+                    int days = (int) Math.floorDiv((int) (timePassed/1000 % (2629.743 * currentTerm)), 864/10);
+                    result = (long) saving.getAmount();
+                    for (int i = 0; i < cycleDone; i++){
+                        result += result * (rate*(currentTerm/12));
+                    }
+                    for (int i = 0; i < days; i++){
+                        result += result * (baseRates.get(bankName));
+                    }
                 }
             } else {
+                result = (long) saving.getAmount();
+                for (int i = 0; i < daysPassed; i++){
+                    result += result * (baseRates.get(bankName));
+                }
+                result = daysPassed*baseRates.get(bankName);
+            }
+            return result;
+        } else {
+            return 0;
+        }
+    }
+
+    public double interestHandle(Saving saving, Map<String, Float> baseRates){
+        double result = 0;
+        String bankName = saving.getBankInfo().getBankName();
+        if (bankInfoRepository.getBankInfoByBankName(bankName).get(0).getUser() == 0){
+            int currentTerm = saving.getBankInfo().getTerm();
+            long startDate = Long.parseLong(saving.startDate())/1000;
+            long endDate = startDate + (long) currentTerm *2629743;
+            long actualEndDate = Instant.now().toEpochMilli()/1000;
+            int daysPassed = (int) Math.floorDiv(actualEndDate - startDate, (86400));
+            if (baseRates.get(bankName) == null)
+                baseRates.put(bankName, bankInfoRepository.getBankInfoByBankNameAndTerm
+                        (bankName, -1).get(0).getInterestRate()/365);
+            if (currentTerm != -1){
+                if (actualEndDate < endDate){
+                    result = saving.getAmount() * (( baseRates.get(bankName) * daysPassed));
+                } else {
+                    double rate = saving.getBankInfo().getInterestRate();
+                    long timePassed = (actualEndDate - startDate);
+                    int cycleDone = (int) Math.floorDiv(timePassed, 2629743*currentTerm);
+                    int days = (int) Math.floorDiv((int) (timePassed/1000 % (2629.743 * currentTerm)), 864/10);
+                    result = (long) saving.getAmount();
+                    for (int i = 0; i < cycleDone; i++){
+                        result += result * (rate*(currentTerm/12));
+                    }
+                    for (int i = 0; i < days; i++){
+                        result += result * (baseRates.get(bankName));
+                    }
+                }
+            } else {
+                result = (long) saving.getAmount();
+                for (int i = 0; i < daysPassed; i++){
+                    result += result * (baseRates.get(bankName));
+                }
                 result = daysPassed*baseRates.get(bankName);
             }
             return result;
